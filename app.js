@@ -16,6 +16,12 @@ const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const userEmail = document.getElementById('userEmail');
 const authNote = document.getElementById('authNote');
+const adminBtn = document.getElementById('adminBtn');
+const adminNote = document.getElementById('adminNote');
+
+const ADMIN_EMAIL = 'azzamunza@gmail.com';
+let currentUserEmail = null;
+let adminMode = false;
 
 const entryForm = document.getElementById('entryForm');
 const entriesList = document.getElementById('entriesList');
@@ -1275,9 +1281,68 @@ if (toggleBodyEdit) {
   });
 }
 
+// ── Admin: edit + save the shared default node layout ──
+function isAdmin() {
+  return currentUserEmail === ADMIN_EMAIL;
+}
+
+function enterAdminMode() {
+  adminMode = true;
+  if (adminNote) adminNote.classList.remove('hidden');
+  if (adminBtn) adminBtn.classList.add('active');
+  setBodyEditMode(true);
+}
+
+function exitAdminMode() {
+  adminMode = false;
+  if (adminNote) adminNote.classList.add('hidden');
+  if (adminBtn) adminBtn.classList.remove('active');
+  setBodyEditMode(false);
+}
+
+function updateAdminButton() {
+  const admin = isAdmin();
+  if (adminBtn) adminBtn.classList.toggle('hidden', !admin);
+  if (!admin && adminMode) exitAdminMode();
+}
+
+async function saveDefaultLayout() {
+  const nodes = loadBodyNodes();
+  try {
+    const { error } = await supabaseClient.from('default_nodes').upsert(
+      { id: 1, nodes, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    );
+    if (error) {
+      alert('Could not save default layout: ' + error.message);
+      return;
+    }
+  } catch (e) {
+    alert('Could not save default layout: ' + e.message);
+    return;
+  }
+  effectiveDefaultNodes = nodes;
+  exitAdminMode();
+  alert('Default node layout saved. New users will see these positions.');
+}
+
 if (saveBodyLayout) {
   saveBodyLayout.addEventListener('click', () => {
-    setBodyEditMode(false);
+    if (adminMode) {
+      saveDefaultLayout();
+    } else {
+      setBodyEditMode(false);
+    }
+  });
+}
+
+if (adminBtn) {
+  adminBtn.addEventListener('click', () => {
+    if (adminMode) {
+      exitAdminMode();
+    } else {
+      enterAdminMode();
+    }
   });
 }
 
@@ -1468,8 +1533,10 @@ function runAppRender() {
 
 async function hydrateAndShow(session) {
   currentUserId = session.user.id;
-  if (userEmail) userEmail.textContent = session.user.email || '';
+  currentUserEmail = session.user.email || '';
+  if (userEmail) userEmail.textContent = currentUserEmail;
   await hydrateUserData(session.user.id);
+  updateAdminButton();
   showApp();
   runAppRender();
   if (!overlayFadeStarted) completeAppLoading();
@@ -1491,6 +1558,8 @@ async function initApp() {
       await hydrateAndShow(session);
     } else if (event === 'SIGNED_OUT') {
       currentUserId = null;
+      currentUserEmail = null;
+      updateAdminButton();
       dbCache.nodes = null;
       dbCache.profile = null;
       dbCache.goals = null;

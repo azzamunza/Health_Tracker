@@ -36,6 +36,18 @@ create policy "Default nodes readable by authenticated users"
   to authenticated
   using (true);
 
+-- Only the app owner (admin) may change the shared default nodes.
+create policy "App owner can update default nodes"
+  on public.default_nodes for update
+  to authenticated
+  using (auth.jwt() ->> 'email' = 'azzamunza@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'azzamunza@gmail.com');
+
+create policy "App owner can insert default nodes"
+  on public.default_nodes for insert
+  to authenticated
+  with check (auth.jwt() ->> 'email' = 'azzamunza@gmail.com');
+
 -- Each user can only access their own row.
 create policy "Users can select own user data"
   on public.user_data for select

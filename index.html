@@ -33,6 +33,7 @@
       <div class="header-actions">
         <span id="userEmail" class="user-email"></span>
         <button id="clearAll" class="ghost-btn">Clear All</button>
+        <button id="adminBtn" class="ghost-btn hidden" title="Edit the default node layout for new users">Admin</button>
         <button id="logoutBtn" class="ghost-btn">Sign out</button>
       </div>
     </header>
@@ -142,6 +143,7 @@
           <div class="body-outline-footer">
             <div class="body-outline-buttons" id="bodyNodeButtons" aria-label="Whole body measurements"></div>
             <p class="outline-note">Toggle nodes on and off to add their measurement data to the line graph.</p>
+            <p id="adminNote" class="admin-note hidden">Admin: editing the default layout. Drag nodes into position, then press Save layout to update these positions for all new users.</p>
             <button type="button" id="saveBodyLayout" class="primary-btn hidden">Save layout</button>
           </div>
         </div>

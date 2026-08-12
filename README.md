@@ -8,12 +8,14 @@ A mobile-friendly, database-driven health tracking web app. Record body measurem
 - **Database-driven (Supabase/Postgres)** — default body nodes live in `default_nodes`; each user's node layout, profile, goals, and measurements are stored in their own `user_data` row.
 - **Default nodes → default goals** — a new user's possible goals are derived from the default nodes, all active by default.
 - **Body zones** — toggle/customise measurement nodes, add custom nodes, edit layout, and plot them on the improvement chart.
+- **Admin layout editor** — the owner (azzamunza@gmail.com) sees an **Admin** button in the header; they can edit and save the shared default node positions that new users receive.
 - **Profile & goals** — read-only profile view with a gear icon opening a combined editor.
 - **Responsive mobile-first design** and PWA-ready.
 
 ## Setup
 
 1. **Supabase schema:** run `schema.sql` in your Supabase SQL Editor (Dashboard → SQL Editor). This creates the `default_nodes` and `user_data` tables, enables Row Level Security, and seeds the default nodes.
+   - **Already created your schema?** run `admin_policy.sql` to enable the Admin layout editor (allowed writes to `default_nodes` for the owner).
 2. **Google OAuth provider:** in Supabase → Authentication → Providers, enable **Google** and add your Google OAuth client credentials.
 3. **Redirect URLs:** in Supabase → Authentication → URL Configuration, add your deployed URL to **Redirect URLs**, e.g. `https://azzamunza.github.io/Health_Tracker/`.
 4. **Keys:** `SUPABASE_URL` and `SUPABASE_ANON_KEY` are set at the top of `app.js` (currently Aaron's defaults).

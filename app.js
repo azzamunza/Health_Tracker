@@ -1283,7 +1283,7 @@ if (toggleBodyEdit) {
 
 // ── Admin: edit + save the shared default node layout ──
 function isAdmin() {
-  return currentUserEmail === ADMIN_EMAIL;
+  return (currentUserEmail || '').toLowerCase().trim() === ADMIN_EMAIL;
 }
 
 function enterAdminMode() {
@@ -1302,6 +1302,7 @@ function exitAdminMode() {
 
 function updateAdminButton() {
   const admin = isAdmin();
+  console.info('HealthTracker: signed in as', currentUserEmail, '| admin =', admin);
   if (adminBtn) adminBtn.classList.toggle('hidden', !admin);
   if (!admin && adminMode) exitAdminMode();
 }

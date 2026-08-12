@@ -1,7 +1,8 @@
 ﻿// ── Supabase (shared project — see event_recorder / My-Google-OAuth-login) ──
 const SUPABASE_URL = 'https://nrwckhyegdkcbfbiitxz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5yd2NraHllZ2RrY2JmYmlpdHh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMzYxMzcsImV4cCI6MjA4NzcxMjEzN30.j_4uCVEG2CoNv9n8tGJaPwZNqSuEqZUZUxxVLdGZcEo';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Named supabaseClient (not `supabase`) to avoid colliding with the CDN's global `supabase` binding.
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // In-memory data cache — single source of truth used by the render layer.
 // Writes are queued (debounced) and pushed to the user's Supabase row.
@@ -136,7 +137,7 @@ function queueDbWrite() {
   if (!currentUserId) return;
   clearTimeout(writeTimer);
   writeTimer = setTimeout(() => {
-    supabase.from('user_data').upsert({
+    supabaseClient.from('user_data').upsert({
       user_id: currentUserId,
       nodes: dbCache.nodes,
       profile: dbCache.profile,
@@ -1378,7 +1379,7 @@ if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     loginBtn.disabled = true;
     if (authNote) authNote.textContent = 'Connecting…';
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + window.location.pathname }
     });
@@ -1390,7 +1391,7 @@ if (loginBtn) {
 }
 
 if (logoutBtn) {
-  logoutBtn.addEventListener('click', () => supabase.auth.signOut());
+  logoutBtn.addEventListener('click', () => supabaseClient.auth.signOut());
 }
 
 function showApp() {
@@ -1407,7 +1408,7 @@ function showAuth() {
 
 // Pull the shared default nodes (single row, id = 1) from Supabase.
 async function ensureDefaultNodes() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('default_nodes')
     .select('nodes')
     .eq('id', 1)
@@ -1436,7 +1437,7 @@ async function hydrateUserData(userId) {
   dbCache.goals = buildDefaultGoals(fallback);
   dbCache.entries = [];
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('user_data')
     .select('*')
     .eq('user_id', userId)
@@ -1475,14 +1476,14 @@ async function hydrateAndShow(session) {
 }
 
 async function initApp() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
     await hydrateAndShow(session);
   } else {
     showAuth();
   }
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
       if (window.location.hash || window.location.search.includes('code')) {
         history.replaceState({}, document.title, window.location.pathname);

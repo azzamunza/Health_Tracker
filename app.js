@@ -22,6 +22,7 @@ const adminNote = document.getElementById('adminNote');
 const ADMIN_EMAIL = 'azzamunza@gmail.com';
 let currentUserEmail = null;
 let adminMode = false;
+let preAdminNodes = null;
 
 const entryForm = document.getElementById('entryForm');
 const entriesList = document.getElementById('entriesList');
@@ -140,6 +141,7 @@ function getFallbackNodes() {
 
 // Debounce rapid local edits; push the whole per-user row to Supabase.
 function queueDbWrite() {
+  if (adminMode) return; // never persist shared-default edits into personal user_data
   if (!currentUserId) return;
   clearTimeout(writeTimer);
   writeTimer = setTimeout(() => {
@@ -1290,11 +1292,42 @@ function enterAdminMode() {
   adminMode = true;
   if (adminNote) adminNote.classList.remove('hidden');
   if (adminBtn) adminBtn.classList.add('active');
+  // Drop any pending personal write so admin edits can't bleed into user_data.
+  clearTimeout(writeTimer);
+  // Remember the admin's personal layout so we can restore it on exit.
+  preAdminNodes = JSON.parse(JSON.stringify(dbCache.nodes || {}));
+  selectedNodeKey = 'all';
   setBodyEditMode(true);
+  loadSharedDefaultsIntoEditor();
+}
+
+// Load the published default layout (default_nodes id=1) into the editor.
+async function loadSharedDefaultsIntoEditor() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('default_nodes')
+      .select('nodes')
+      .eq('id', 1)
+      .maybeSingle();
+    if (!error && data && data.nodes && Object.keys(data.nodes).length) {
+      dbCache.nodes = JSON.parse(JSON.stringify(data.nodes));
+      selectedNodeKey = 'all';
+      setBodyEditMode(true);
+    } else if (error) {
+      console.warn('Admin: could not load shared defaults', error.message);
+    }
+  } catch (e) {
+    console.warn('Admin: could not load shared defaults', e.message);
+  }
 }
 
 function exitAdminMode() {
   adminMode = false;
+  if (preAdminNodes) {
+    dbCache.nodes = preAdminNodes;
+    preAdminNodes = null;
+    selectedNodeKey = 'all';
+  }
   if (adminNote) adminNote.classList.add('hidden');
   if (adminBtn) adminBtn.classList.remove('active');
   setBodyEditMode(false);

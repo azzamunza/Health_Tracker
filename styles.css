@@ -724,6 +724,10 @@ h1 {
   border-radius: 28px;
   background: #000 url('images/body-shape-profile.png') center/contain no-repeat;
   overflow: hidden;
+  /* Disable touch scroll/zoom over the body image so node drags aren't
+     hijacked by page swiping on mobile. Page can still be scrolled via
+     the side margins (see mobile rule below). */
+  touch-action: none;
 }
 
 .body-outline.body-outline-edit {
@@ -1057,6 +1061,16 @@ h1 {
 
   .feature {
     padding: 18px;
+  }
+
+  /* Healthy scrollable margins on each side of the body image so the page
+     can still be swiped vertically on the edges while node dragging works
+     in the centre. width:auto lets the margins shrink the box (base rule
+     sets width:100%, which would otherwise overflow). */
+  .body-outline {
+    width: auto;
+    margin-left: 24px;
+    margin-right: 24px;
   }
 }
 

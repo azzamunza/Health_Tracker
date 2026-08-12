@@ -1,0 +1,15 @@
+{
+  "name": "HealthTracker",
+  "short_name": "HealthTracker",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#11071c",
+  "background_color": "#11071c",
+  "icons": [
+    {
+      "src": "images/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

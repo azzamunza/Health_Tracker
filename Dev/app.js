@@ -6,7 +6,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 // In-memory data cache — single source of truth used by the render layer.
 // Writes are queued (debounced) and pushed to the user's Supabase row.
-const dbCache = { nodes: null, profile: null, goals: null, entries: [] };
+const dbCache = { nodes: null, profile: null, goals: null, entries: [], peptides: [], exercises: [], diet: {} };
 let currentUserId = null;
 let writeTimer = null;
 
@@ -151,6 +151,9 @@ function queueDbWrite() {
       profile: dbCache.profile,
       goals: dbCache.goals,
       entries: dbCache.entries,
+      peptides: dbCache.peptides,
+      exercises: dbCache.exercises,
+      diet: dbCache.diet,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' }).then(({ error }) => {
       if (error) console.warn('Supabase write failed (schema ready?)', error.message);
@@ -1497,6 +1500,7 @@ function showApp() {
   if (authScreen) authScreen.classList.add('hidden');
   if (appShell) appShell.classList.remove('hidden');
   if (loadingOverlay) loadingOverlay.style.display = '';
+  initNewPages();
 }
 
 function showAuth() {
@@ -1535,6 +1539,9 @@ async function hydrateUserData(userId) {
   dbCache.profile = {};
   dbCache.goals = buildDefaultGoals(fallback);
   dbCache.entries = [];
+  dbCache.peptides = [];
+  dbCache.exercises = [];
+  dbCache.diet = {};
 
   const { data, error } = await supabaseClient
     .from('user_data')
@@ -1547,6 +1554,9 @@ async function hydrateUserData(userId) {
     dbCache.profile = data.profile || {};
     dbCache.goals = data.goals || dbCache.goals;
     dbCache.entries = data.entries || [];
+    dbCache.peptides = Array.isArray(data.peptides) ? data.peptides : [];
+    dbCache.exercises = Array.isArray(data.exercises) ? data.exercises : [];
+    dbCache.diet = data.diet || {};
   } else if (!error) {
     // First-time user: persist the initialised row (goals active by default).
     queueDbWrite();
@@ -1598,6 +1608,9 @@ async function initApp() {
       dbCache.profile = null;
       dbCache.goals = null;
       dbCache.entries = [];
+      dbCache.peptides = [];
+      dbCache.exercises = [];
+      dbCache.diet = {};
       showAuth();
     }
   });
@@ -1606,3 +1619,532 @@ async function initApp() {
 window.addEventListener('load', () => {
   initApp();
 });
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   HealthTracker Dev â€” Calendar / Diet / Peptides / Exercise pages
+   Extends the existing single-row user_data schema
+   (peptides / exercises / diet JSONB columns).
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+// â”€â”€ Curated compound list (from Dev/peptides-data.xlsx, Pantone swatch hex) â”€â”€
+const PEPTIDE_LIBRARY = [
+  { name: '5-Amino-1MQ', category: 'Metabolic', mechanism: 'NNMT inhibitor. Metabolic research.', clinic: 'Fat-loss & body-composition interest, cellular-energy research.', color: '#FFD000' },
+  { name: 'AOD-9604', category: 'Metabolic', mechanism: 'C-terminal fragment of HGH. Fat-metabolism research. Lipid Breakdown.', clinic: 'Body-composition & stubborn-fat interest, Weight Support.', color: '#FF6900' },
+  { name: 'BPC-157', category: 'Tissue Repair', mechanism: 'Upregulates angiogenic growth factors (VEGF). Angiogenesis.', clinic: 'Tendon, ligament, muscle & gut-healing interest. Nervous System Support.', color: '#298A3B' },
+  { name: 'Cagrilintide', category: 'Metabolic', mechanism: 'Appetite & satiety.', clinic: 'Weight-management interest.', color: '#FFA300' },
+  { name: 'Cerebrolysin', category: 'Cognitive', mechanism: 'Brain & neurological research.', clinic: 'Cognition, memory & neurorecovery interest.', color: '#009CA6' },
+  { name: 'CJC-1295', category: 'GH Secretagogue', mechanism: 'GHRH analog with extended half-life. GH/IGF-1 support research.', clinic: 'Sustained GH release, fat loss, lean muscle retention. Body Composition.', color: '#93328E' },
+  { name: 'Dihexa', category: 'Cognitive', mechanism: 'Angiotensin IV analog.', clinic: 'Synaptogenesis, memory consolidation, brain injury recovery.', color: '#001770' },
+  { name: 'DSIP', category: 'Cognitive', mechanism: 'Sleep research.', clinic: 'Deeper/restorative sleep & stress-recovery interest.', color: '#7586C7' },
+  { name: 'Epitalon', category: 'Longevity', mechanism: 'Telomerase activator. Longevity research.', clinic: 'Cellular aging, telomeres & circadian/sleep interest.', color: '#A2AAAC' },
+  { name: 'GHK-Cu', category: 'Cosmetic / Healing', mechanism: 'Copper-binding peptide; stimulates fibroblasts. Anti-Aging.', clinic: 'Skin & hair favourite, collagen support, wound healing.', color: '#B95826' },
+  { name: 'Glutathione', category: 'Antioxidant', mechanism: 'Powerful Antioxidant, Detoxification.', clinic: 'Oxidative Stress Support.', color: '#8B4699' },
+  { name: 'Hexarelin', category: 'Recovery', mechanism: 'Potent GH-secretagogue research.', clinic: 'Recovery, lean-mass & performance interest.', color: '#582B82' },
+  { name: 'IGF-1 LR3', category: 'Recovery', mechanism: 'Growth-signaling research.', clinic: 'Muscle growth, recovery & nutrient-partitioning interest.', color: '#005DB8' },
+  { name: 'Ipamorelin', category: 'GH Secretagogue', mechanism: 'Selective GHRP (no cortisol/prolactin spike). GH-release research.', clinic: 'Clean GH pulse, improved sleep architecture, recovery.', color: '#675BC7' },
+  { name: 'Kisspeptin-10', category: 'Endocrine', mechanism: 'GnRH stimulator.', clinic: 'Testosterone regulation, fertility support, libido.', color: '#D60070' },
+  { name: 'KPV', category: 'Immune', mechanism: 'Anti-Inflammatory, Immune Modulation.', clinic: 'Gut & Skin Support.', color: '#FFCC00' },
+  { name: 'Liraglutide', category: 'Metabolic', mechanism: 'GLP-1 therapy, appetite control, glucose management.', clinic: 'Weight management.', color: '#FF661F' },
+  { name: 'LL-37', category: 'Immune', mechanism: 'Innate-immunity research, antimicrobial activity.', clinic: 'Immune defence & wound-healing interest.', color: '#83BD00' },
+  { name: 'Melanotan II', category: 'Pigmentation', mechanism: 'Alpha-MSH analog.', clinic: 'Melanin production (tanning), appetite suppression, spontaneous arousal.', color: '#5D3821' },
+  { name: 'MK-677 / Ibutamoren', category: 'Recovery', mechanism: 'GH/IGF-1 secretagogue, not a peptide.', clinic: 'Sleep, recovery, appetite & lean-mass interest.', color: '#7C868E' },
+  { name: 'MOTS-c', category: 'Mitochondrial', mechanism: 'Mitochondrial-derived peptide (MDP).', clinic: 'Metabolic health, energy, exercise & healthy-aging interest.', color: '#EF3340' },
+  { name: 'NAD+', category: 'Energy', mechanism: 'Cellular-energy & longevity interest, not a peptide. DNA Repair Support.', clinic: 'Mitochondrial function & metabolic support.', color: '#EC8B00' },
+  { name: 'PT-141 (Bremelanotide)', category: 'Sexual Health', mechanism: 'Melanocortin receptor agonist.', clinic: 'Erectile dysfunction, female sexual arousal disorder.', color: '#FF585C' },
+  { name: 'Retatrutide', category: 'Metabolic', mechanism: 'Triple-hormone metabolic drug. Triple Agonist.', clinic: 'Weight-loss, appetite & metabolic-health interest.', color: '#FA4516' },
+  { name: 'Selank', category: 'Cognitive', mechanism: 'Tuftsin analog. Calm-focus research.', clinic: 'Anxiety/stress resilience, mood & cognition interest.', color: '#40B5E6' },
+  { name: 'Semaglutide', category: 'Metabolic', mechanism: 'GLP-1 analogue, appetite control. Blood Sugar Support.', clinic: 'Weight management & metabolic/glucose health.', color: '#DF3C31' },
+  { name: 'Semax', category: 'Cognitive', mechanism: 'ACTH (4-10) analog. Nootropic research.', clinic: 'Focus, mental energy, memory & neuroprotection interest.', color: '#0C2340' },
+  { name: 'Sermorelin', category: 'GH Secretagogue', mechanism: 'GHRH analog (shorter half-life).', clinic: 'Baseline GH restoration, anti-aging, sleep improvement.', color: '#DF457B' },
+  { name: 'TB-500', category: 'Tissue Repair', mechanism: 'Synthetic fraction of Thymosin Beta-4; actin upregulation.', clinic: 'Soft-tissue repair, flexibility, mobility & wound healing.', color: '#C1D82E' },
+  { name: 'Tesamorelin', category: 'GH Secretagogue', mechanism: 'GHRH analog. GH Release.', clinic: 'Visceral-fat reduction, GH/IGF-1 & body-composition interest.', color: '#502967' },
+  { name: 'Thymogen', category: 'Immune', mechanism: 'Immune-regulation research, immune signaling.', clinic: 'Immune-response interest.', color: '#009538' },
+  { name: 'Thymosin Alpha-1', category: 'Immune Modulation', mechanism: 'T-cell maturation and stimulation. Immune-modulation research.', clinic: 'Immune resilience & infection-response interest.', color: '#00B1A8' },
+  { name: 'Thymulin', category: 'Immune', mechanism: 'Immune-regulation research, T-cell signaling.', clinic: 'Inflammation & immune-balance interest.', color: '#009944' },
+  { name: 'Tirzepatide', category: 'Metabolic', mechanism: 'GIP/GLP-1 analogue, appetite reduction. Dual Agonist.', clinic: 'Substantial weight management & metabolic/glucose health.', color: '#B90C2E' }
+];
+
+// â”€â”€ Curated home-exercise library (dumbbell / no-equipment) â”€â”€
+const EXERCISE_LIBRARY = [
+  { name: 'Push-ups', activity: 'strength', sets: 4, reps: 15 },
+  { name: 'Squats (bodyweight)', activity: 'strength', sets: 4, reps: 20 },
+  { name: 'Lunges', activity: 'strength', sets: 3, reps: 15 },
+  { name: 'Plank hold', activity: 'core', sets: 3, reps: 60 },
+  { name: 'Glute bridge', activity: 'strength', sets: 4, reps: 15 },
+  { name: 'Burpees', activity: 'cardio', sets: 3, reps: 12 },
+  { name: 'Mountain climbers', activity: 'cardio', sets: 4, reps: 30 },
+  { name: 'High knees', activity: 'cardio', sets: 3, reps: 45 },
+  { name: 'Star jumps', activity: 'cardio', sets: 4, reps: 20 },
+  { name: 'Dumbbell goblet squat', activity: 'strength', sets: 4, reps: 12 },
+  { name: 'Dumbbell shoulder press', activity: 'strength', sets: 4, reps: 10 },
+  { name: 'Dumbbell bicep curl', activity: 'strength', sets: 4, reps: 12 },
+  { name: 'Dumbbell row', activity: 'strength', sets: 4, reps: 12 },
+  { name: 'Dumbbell deadlift', activity: 'strength', sets: 4, reps: 10 },
+  { name: 'Dumbbell chest press', activity: 'strength', sets: 4, reps: 12 },
+  { name: 'Dumbbell lateral raise', activity: 'strength', sets: 4, reps: 12 },
+  { name: 'Dumbbell reverse fly', activity: 'strength', sets: 3, reps: 12 },
+  { name: 'Dumbbell tricep extension', activity: 'strength', sets: 3, reps: 12 },
+  { name: 'Dumbbell farmer carry', activity: 'cardio', sets: 4, reps: 60 },
+  { name: 'Dumbbell renegade row', activity: 'strength', sets: 3, reps: 10 },
+  { name: 'Bulgarian split squat', activity: 'strength', sets: 3, reps: 10 },
+  { name: 'Side plank', activity: 'core', sets: 3, reps: 40 },
+  { name: 'Dead bug', activity: 'core', sets: 3, reps: 12 },
+  { name: 'Russian twist (weighted)', activity: 'core', sets: 3, reps: 20 },
+  { name: 'Step-ups', activity: 'strength', sets: 4, reps: 12 },
+  { name: 'Calf raises', activity: 'strength', sets: 4, reps: 20 },
+  { name: 'Band pull-apart', activity: 'mobility', sets: 3, reps: 15 },
+  { name: 'Cat-cow stretch', activity: 'mobility', sets: 2, reps: 12 }
+];
+
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'alcohol'];
+const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack', alcohol: 'Alcohol' };
+const MEAL_CLASS = { breakfast: 'meal-breakfast', lunch: 'meal-lunch', dinner: 'meal-dinner', snack: 'meal-snack', alcohol: 'meal-alcohol' };
+const MEAL_COLOR = { breakfast: '#ffd98a', lunch: '#8fd3ff', dinner: '#ff9db0', snack: '#b9a6ff', alcohol: '#ffbea6' };
+const ACTIVITY_LABELS = { strength: 'Strength', cardio: 'Cardio', mobility: 'Mobility', core: 'Core', other: 'Other' };
+
+// â”€â”€ date helpers â”€â”€
+function pad2(n) { return String(n).padStart(2, '0'); }
+function toDateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function keyToDate(key) {
+  const p = String(key).split('-').map(Number);
+  return new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
+}
+function todayKey() { return toDateKey(new Date()); }
+function shiftDate(d, days) { const c = new Date(d); c.setDate(c.getDate() + days); return c; }
+function fmtDateLabel(d) { return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); }
+
+// â”€â”€ cache helpers â”€â”€
+function loadPeptides() { return dbCache.peptides || (dbCache.peptides = []); }
+function savePeptides(l) { dbCache.peptides = l; queueDbWrite(); }
+function loadExercises() { return dbCache.exercises || (dbCache.exercises = []); }
+function saveExercises(l) { dbCache.exercises = l; queueDbWrite(); }
+function loadDiet() { return dbCache.diet || (dbCache.diet = {}); }
+function saveDiet(d) { dbCache.diet = d; queueDbWrite(); }
+function getPeptideMeta(name) {
+  return PEPTIDE_LIBRARY.find((p) => p.name === name) || { name, category: 'Custom', mechanism: '', clinic: '', color: '#f2186b' };
+}
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// â”€â”€ routing â”€â”€
+let activeView = 'dashboard';
+let currentDay = todayKey();
+let dietCursor = todayKey();
+
+function initNewPages() {
+  document.querySelectorAll('.nav-link').forEach((btn) => {
+    btn.addEventListener('click', () => showView(btn.dataset.view));
+  });
+  const cP = document.getElementById('calPrev'); if (cP) cP.addEventListener('click', () => { currentDay = toDateKey(shiftDate(keyToDate(currentDay), -1)); renderCalendar(); });
+  const cN = document.getElementById('calNext'); if (cN) cN.addEventListener('click', () => { currentDay = toDateKey(shiftDate(keyToDate(currentDay), 1)); renderCalendar(); });
+  const dP = document.getElementById('dietPrev'); if (dP) dP.addEventListener('click', () => { dietCursor = toDateKey(shiftDate(keyToDate(dietCursor), -1)); renderDiet(); });
+  const dN = document.getElementById('dietNext'); if (dN) dN.addEventListener('click', () => { dietCursor = toDateKey(shiftDate(keyToDate(dietCursor), 1)); renderDiet(); });
+
+  const dietDate = document.getElementById('dietDate'); if (dietDate && !dietDate.value) dietDate.value = todayKey();
+  const exDate = document.getElementById('exDate'); if (exDate && !exDate.value) exDate.value = todayKey();
+  const pepDoseDate = document.getElementById('pepDoseDate'); if (pepDoseDate && !pepDoseDate.value) pepDoseDate.value = todayKey();
+
+  wirePeptideForm();
+  wireExerciseForm();
+  wireDietForm();
+
+  populatePeptideSelect();
+  renderLibrary();
+  showView('dashboard');
+}
+
+function showView(view) {
+  activeView = view;
+  document.querySelectorAll('.view-page').forEach((page) => page.classList.toggle('hidden', page.id !== 'view-' + view));
+  document.querySelectorAll('.nav-link').forEach((btn) => btn.classList.toggle('active', btn.dataset.view === view));
+  if (view === 'calendar') renderCalendar();
+  else if (view === 'diet') renderDiet();
+  else if (view === 'peptides') { renderPeptideProfile(); renderPeptideSchedule(); refreshPepDoseSelect(); }
+  else if (view === 'exercise') { renderLibrary(); renderExerciseLog(); }
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â• PEPTIDES â•â•â•â•â•â•â•â•â•â•â•â•
+function wirePeptideForm() {
+  const add = document.getElementById('pepAddBtn'); if (add) add.addEventListener('click', addPeptideToProfile);
+  const search = document.getElementById('pepSearch'); if (search) search.addEventListener('input', applyPeptideFilter);
+  const form = document.getElementById('pepForm'); if (form) form.addEventListener('submit', schedulePeptide);
+}
+function populatePeptideSelect() {
+  const sel = document.getElementById('pepSelect'); if (!sel) return;
+  sel.innerHTML = '';
+  PEPTIDE_LIBRARY.forEach((p) => {
+    const o = document.createElement('option'); o.value = p.name; o.textContent = p.name; sel.appendChild(o);
+  });
+  refreshPepDoseSelect();
+}
+function refreshPepDoseSelect() {
+  const sel = document.getElementById('pepDoseSelect'); if (!sel) return;
+  sel.innerHTML = '';
+  const profile = loadPeptides();
+  if (!profile.length) {
+    const o = document.createElement('option'); o.value = ''; o.textContent = 'Add a compound to your protocol first'; sel.appendChild(o);
+  } else {
+    profile.forEach((e) => { const o = document.createElement('option'); o.value = e.name; o.textContent = e.name; sel.appendChild(o); });
+  }
+}
+function applyPeptideFilter() {
+  const q = (document.getElementById('pepSearch').value || '').toLowerCase().trim();
+  const sel = document.getElementById('pepSelect'); if (!sel) return;
+  Array.from(sel.options).forEach((opt) => { opt.hidden = q ? !opt.textContent.toLowerCase().includes(q) : false; });
+}
+function addPeptideToProfile() {
+  const sel = document.getElementById('pepSelect'); if (!sel || !sel.value) return;
+  const name = sel.value;
+  if (loadPeptides().some((p) => p.name === name)) { alert('That compound is already in your protocol.'); return; }
+  loadPeptides().push({ name, addedAt: new Date().toISOString() });
+  savePeptides(loadPeptides());
+  renderPeptideProfile();
+  refreshPepDoseSelect();
+}
+function removePeptideFromProfile(name) {
+  if (!confirm('Remove ' + name + ' from your protocol?')) return;
+  savePeptides(loadPeptides().filter((p) => p.name !== name));
+  renderPeptideProfile();
+  renderPeptideSchedule();
+  refreshPepDoseSelect();
+}
+function renderPeptideProfile() {
+  const el = document.getElementById('pepProfile'); if (!el) return;
+  const profile = loadPeptides();
+  if (!profile.length) { el.innerHTML = '<p class="dc-empty">No compounds added yet. Pick one above and press â€œAdd to protocolâ€.</p>'; return; }
+  el.innerHTML = '';
+  profile.forEach((entry) => {
+    const meta = getPeptideMeta(entry.name);
+    const chip = document.createElement('div');
+    chip.className = 'pep-chip';
+    chip.innerHTML = '<span class="pc-swatch" style="background:' + meta.color + '"></span>'
+      + '<div class="pc-main"><b>' + escHtml(entry.name) + '</b><span>' + escHtml(meta.category || '')
+      + (meta.mechanism ? ' Â· ' + escHtml(meta.mechanism) : '') + '</span></div>'
+      + '<button type="button" class="pc-del" title="Remove" aria-label="Remove ' + escHtml(entry.name) + '">âœ•</button>';
+    chip.querySelector('.pc-del').addEventListener('click', () => removePeptideFromProfile(entry.name));
+    el.appendChild(chip);
+  });
+}
+function schedulePeptide(event) {
+  event.preventDefault();
+  const nameSel = document.getElementById('pepDoseSelect');
+  const dateInput = document.getElementById('pepDoseDate');
+  if (!nameSel || !dateInput || !nameSel.value || !dateInput.value) return;
+  const timeInput = document.getElementById('pepDoseTime');
+  const doseInput = document.getElementById('pepDose');
+  const noteInput = document.getElementById('pepNote');
+  const meta = getPeptideMeta(nameSel.value);
+  loadPeptides().push({
+    name: nameSel.value, date: dateInput.value,
+    time: timeInput ? timeInput.value || '' : '',
+    dose: doseInput ? doseInput.value.trim() : '',
+    note: noteInput ? noteInput.value.trim() : '',
+    color: meta.color, complete: false, createdAt: new Date().toISOString()
+  });
+  savePeptides(loadPeptides());
+  if (doseInput) doseInput.value = '';
+  if (noteInput) noteInput.value = '';
+  renderPeptideSchedule();
+  alert('Dose scheduled.');
+}
+function togglePeptideComplete(createdAt) {
+  const list = loadPeptides();
+  const item = list.find((p) => p.createdAt === createdAt);
+  if (item) item.complete = !item.complete;
+  savePeptides(list); renderPeptideSchedule(); if (activeView === 'calendar') renderCalendar();
+}
+function deletePeptideEntry(createdAt) {
+  if (!confirm('Delete this scheduled dose?')) return;
+  savePeptides(loadPeptides().filter((p) => p.createdAt !== createdAt));
+  renderPeptideSchedule(); if (activeView === 'calendar') renderCalendar();
+}
+function renderPeptideSchedule() {
+  const el = document.getElementById('pepSchedule'); if (!el) return;
+  const list = loadPeptides().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (!list.length) { el.innerHTML = '<p class="cal-empty">No scheduled doses yet. Use the form to schedule one.</p>'; return; }
+  el.innerHTML = '';
+  list.forEach((entry) => {
+    const meta = getPeptideMeta(entry.name);
+    const card = document.createElement('div');
+    card.className = 'pep-entry' + (entry.complete ? ' complete' : '');
+    card.innerHTML = '<div class="pe-top">'
+      + '<input type="checkbox" class="pe-check" ' + (entry.complete ? 'checked ' : '') + 'aria-label="Mark complete" />'
+      + '<span class="pe-swatch" style="background:' + meta.color + '"></span>'
+      + '<div class="pe-main"><b>' + escHtml(entry.name) + '</b><span>' + escHtml(entry.date || '')
+      + (entry.time ? ' Â· ' + escHtml(entry.time) : '') + (entry.dose ? ' Â· ' + escHtml(entry.dose) : '')
+      + (entry.complete ? ' Â· done' : '') + '</span></div>'
+      + '<button type="button" class="pe-del" aria-label="Delete">Ã—</button></div>'
+      + (entry.note ? '<div class="pe-note">' + escHtml(entry.note) + '</div>' : '');
+    card.querySelector('.pe-check').addEventListener('change', () => togglePeptideComplete(entry.createdAt));
+    card.querySelector('.pe-del').addEventListener('click', () => deletePeptideEntry(entry.createdAt));
+    el.appendChild(card);
+  });
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â• EXERCISE â•â•â•â•â•â•â•â•â•â•â•â•
+function wireExerciseForm() {
+  const search = document.getElementById('exSearch'); if (search) search.addEventListener('input', renderLibraryFiltered);
+  const shared = document.getElementById('exSharedOnly'); if (shared) shared.addEventListener('change', renderLibraryFiltered);
+  const form = document.getElementById('exForm'); if (form) form.addEventListener('submit', addExerciseEntry);
+}
+function renderLibrary() { renderLibraryBase(EXERCISE_LIBRARY); }
+function renderLibraryFiltered() {
+  const q = (document.getElementById('exSearch').value || '').toLowerCase().trim();
+  const sharedOnly = document.getElementById('exSharedOnly') ? document.getElementById('exSharedOnly').checked : false;
+  // Curated set plus any of your own exercises flagged “shared”.
+  const myShared = loadExercises().filter((e) => e.shared);
+  const combined = EXERCISE_LIBRARY.concat(myShared);
+  const seen = {};
+  const merged = combined.filter((e) => {
+    const k = e.name.toLowerCase();
+    if (seen[k]) return false;
+    seen[k] = true;
+    return true;
+  });
+  let src = sharedOnly ? merged.filter((e) => e.shared) : merged;
+  if (q) src = src.filter((e) => e.name.toLowerCase().includes(q));
+  renderLibraryBase(src);
+}
+function renderLibraryBase(source) {
+  const el = document.getElementById('exLibrary'); if (!el) return;
+  if (!source.length) { el.innerHTML = '<p class="ex-empty">No exercises match your filter.</p>'; return; }
+  el.innerHTML = '';
+  source.forEach((entry) => {
+    const card = document.createElement('div');
+    card.className = 'ex-card';
+    card.innerHTML = '<div class="ec-top"><h4>' + escHtml(entry.name) + '</h4>'
+      + '<span class="ec-tag">' + escHtml(ACTIVITY_LABELS[entry.activity] || entry.activity || 'Other') + '</span></div>'
+      + '<div class="ec-meta"><span>Sets ' + (entry.sets || 0) + '</span><span>Reps ' + (entry.reps || 0) + '</span></div>'
+      + '<button type="button" class="ec-add">Log for today</button>';
+    card.querySelector('.ec-add').addEventListener('click', () => logFromLibrary(entry));
+    el.appendChild(card);
+  });
+}
+function logFromLibrary(libEntry) {
+  loadExercises().push({
+    name: libEntry.name, activity: libEntry.activity || 'strength',
+    sets: libEntry.sets || 0, reps: libEntry.reps || 0,
+    date: todayKey(), done: false, createdAt: new Date().toISOString()
+  });
+  saveExercises(loadExercises());
+  renderExerciseLog();
+  alert('Added to your exercise log for today.');
+}
+function addExerciseEntry(event) {
+  event.preventDefault();
+  const dateInput = document.getElementById('exDate');
+  const nameInput = document.getElementById('exName');
+  if (!dateInput || !nameInput) return;
+  if (!dateInput.value) { alert('Please choose a date.'); return; }
+  const name = nameInput.value.trim();
+  if (!name) { alert('Please enter an exercise name.'); return; }
+  const actInput = document.getElementById('exActivity');
+  const setsInput = document.getElementById('exSets');
+  const repsInput = document.getElementById('exReps');
+  const sharedInput = document.getElementById('exShared');
+  loadExercises().push({
+    name, activity: actInput ? actInput.value : 'strength',
+    sets: setsInput ? Number(setsInput.value) || 0 : 0,
+    reps: repsInput ? Number(repsInput.value) || 0 : 0,
+    date: dateInput.value, done: false,
+    shared: !!(sharedInput && sharedInput.checked),
+    createdAt: new Date().toISOString()
+  });
+  saveExercises(loadExercises());
+  if (nameInput) nameInput.value = '';
+  if (setsInput) setsInput.value = '';
+  if (repsInput) repsInput.value = '';
+  if (sharedInput) sharedInput.checked = false;
+  renderExerciseLog();
+  alert('Exercise logged.');
+}
+function toggleExerciseDone(createdAt) {
+  const list = loadExercises();
+  const item = list.find((e) => e.createdAt === createdAt);
+  if (item) item.done = !item.done;
+  saveExercises(list); renderExerciseLog(); if (activeView === 'calendar') renderCalendar();
+}
+function deleteExerciseEntry(createdAt) {
+  if (!confirm('Delete this exercise entry?')) return;
+  saveExercises(loadExercises().filter((e) => e.createdAt !== createdAt));
+  renderExerciseLog(); if (activeView === 'calendar') renderCalendar();
+}
+function renderExerciseLog() {
+  const el = document.getElementById('exLog'); if (!el) return;
+  const list = loadExercises().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (!list.length) { el.innerHTML = '<p class="ex-empty">No workouts logged yet. Add one above or log from the library.</p>'; return; }
+  el.innerHTML = '';
+  list.forEach((entry) => {
+    const row = document.createElement('div');
+    row.className = 'ex-entry' + (entry.done ? ' done' : '');
+    row.innerHTML = '<div class="ee-top">'
+      + '<input type="checkbox" class="ee-check" ' + (entry.done ? 'checked ' : '') + 'aria-label="Mark done" />'
+      + '<div class="ee-main"><b>' + escHtml(entry.name) + '</b><span>' + escHtml(entry.date || '') + ' Â· '
+      + escHtml(ACTIVITY_LABELS[entry.activity] || entry.activity || 'Other') + ' Â· ' + (entry.sets || 0) + ' sets Ã— '
+      + (entry.reps || 0) + ' reps' + (entry.shared ? ' Â· shared' : '') + '</span></div>'
+      + '<button type="button" class="ee-del" aria-label="Delete">Ã—</button></div>';
+    row.querySelector('.ee-check').addEventListener('change', () => toggleExerciseDone(entry.createdAt));
+    row.querySelector('.ee-del').addEventListener('click', () => deleteExerciseEntry(entry.createdAt));
+    el.appendChild(row);
+  });
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â• DIET â•â•â•â•â•â•â•â•â•â•â•â•
+function wireDietForm() {
+  const form = document.getElementById('dietForm'); if (form) form.addEventListener('submit', addDietItem);
+  const sel = document.getElementById('dietMeal');
+  if (sel) sel.addEventListener('change', () => {
+    const hint = document.getElementById('dietAlcoholHint'); if (hint) hint.hidden = sel.value !== 'alcohol';
+  });
+}
+function addDietItem(event) {
+  event.preventDefault();
+  const dateInput = document.getElementById('dietDate');
+  const itemInput = document.getElementById('dietItem');
+  if (!dateInput || !itemInput || !dateInput.value) return;
+  const item = (itemInput.value || '').trim();
+  if (!item) { alert('Enter a food or drink item.'); return; }
+  const meal = document.getElementById('dietMeal') ? document.getElementById('dietMeal').value : 'snack';
+  const key = dateInput.value;
+  const diet = loadDiet();
+  if (!diet[key]) diet[key] = {};
+  if (!Array.isArray(diet[key][meal])) diet[key][meal] = [];
+  diet[key][meal].push({ text: item, addedAt: new Date().toISOString() });
+  saveDiet(diet);
+  itemInput.value = '';
+  renderDiet();
+  if (activeView === 'calendar') renderCalendar();
+}
+function deleteDietItem(dateKey, meal, index) {
+  const diet = loadDiet();
+  if (!diet[dateKey] || !Array.isArray(diet[dateKey][meal])) return;
+  diet[dateKey][meal].splice(index, 1);
+  if (!diet[dateKey][meal].length) delete diet[dateKey][meal];
+  if (!Object.keys(diet[dateKey]).length) delete diet[dateKey];
+  saveDiet(diet);
+  renderDiet(); if (activeView === 'calendar') renderCalendar();
+}
+function renderDiet() {
+  const label = document.getElementById('dietDateLabel'); if (label) label.textContent = fmtDateLabel(keyToDate(dietCursor));
+  const dateInput = document.getElementById('dietDate'); if (dateInput) dateInput.value = dietCursor;
+  const grid = document.getElementById('dietGrid'); if (!grid) return;
+  grid.innerHTML = '';
+  const day = loadDiet()[dietCursor] || {};
+  MEAL_TYPES.forEach((meal) => {
+    const items = day[meal] || [];
+    const card = document.createElement('div');
+    card.className = 'diet-card ' + MEAL_CLASS[meal];
+    card.innerHTML = '<div class="dc-head"><span>' + MEAL_LABELS[meal] + '</span><span class="dc-count">' + items.length + '</span></div>'
+      + '<div class="dc-body"></div>';
+    const body = card.querySelector('.dc-body');
+    if (!items.length) { body.innerHTML = '<span class="dc-empty">Nothing logged.</span>'; }
+    else {
+      items.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'dc-item';
+        row.innerHTML = '<span>' + escHtml(item.text) + '</span><button type="button" class="dc-del" aria-label="Remove">Ã—</button>';
+        row.querySelector('.dc-del').addEventListener('click', () => deleteDietItem(dietCursor, meal, index));
+        body.appendChild(row);
+      });
+    }
+    grid.appendChild(card);
+  });
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â• CALENDAR â•â•â•â•â•â•â•â•â•â•â•â•
+function measurementEntriesForDay(key) {
+  return normalizeEntries(loadEntries()).filter((e) => e.date && toDateKey(new Date(e.date)) === key);
+}
+function renderCalGroup(title, tag) {
+  const group = document.createElement('div');
+  group.className = 'cal-group';
+  group.innerHTML = '<div class="cg-head"><h3>' + title + '</h3><span class="cg-tag">' + (tag || '') + '</span></div><div class="cg-body"></div>';
+  return group;
+}
+function renderCalItem(dot, inner) {
+  const item = document.createElement('div');
+  item.className = 'cal-item';
+  item.innerHTML = '<span class="ci-dot" style="background:' + (dot || '#f2186b') + '"></span><div class="ci-main">' + inner + '</div>';
+  return item;
+}
+function renderCalendar() {
+  const label = document.getElementById('calDateLabel'); if (label) label.textContent = fmtDateLabel(keyToDate(currentDay));
+  const container = document.getElementById('calendarDay'); if (!container) return;
+  container.innerHTML = '';
+
+  const peptides = loadPeptides().filter((p) => p.date === currentDay);
+  const exercises = loadExercises().filter((e) => e.date === currentDay);
+  const meals = loadDiet()[currentDay] || {};
+  const meas = measurementEntriesForDay(currentDay);
+
+  const pCount = document.getElementById('calPeptideCount'); if (pCount) pCount.textContent = peptides.length;
+  const wCount = document.getElementById('calWorkoutCount'); if (wCount) wCount.textContent = exercises.length;
+  const mCount = document.getElementById('calMealCount'); if (mCount) mCount.textContent = MEAL_TYPES.reduce((n, t) => n + (meals[t] ? meals[t].length : 0), 0);
+  const dCount = document.getElementById('calMeasCount'); if (dCount) dCount.textContent = meas.length;
+
+  if (!peptides.length && !exercises.length && !meas.length && !MEAL_TYPES.some((t) => meals[t] && meals[t].length)) {
+    container.innerHTML = '<p class="cal-empty">Nothing logged for this day yet.</p>';
+    return;
+  }
+
+  // Peptides
+  if (peptides.length) {
+    const g = renderCalGroup('Peptides', peptides.filter((p) => p.complete).length + '/' + peptides.length + ' done');
+    const body = g.querySelector('.cg-body');
+    peptides.forEach((p) => {
+      const meta = getPeptideMeta(p.name);
+      const item = renderCalItem(meta.color,
+        '<b>' + escHtml(p.name) + (p.complete ? ' âœ“' : '') + '</b>'
+        + '<span>' + (p.time ? escHtml(p.time) + ' Â· ' : '') + escHtml(p.dose || '') + (p.note ? ' Â· ' + escHtml(p.note) : '') + '</span>');
+      body.appendChild(item);
+    });
+    container.appendChild(g);
+  }
+
+  // Workouts
+  if (exercises.length) {
+    const g = renderCalGroup('Exercise', exercises.filter((e) => e.done).length + '/' + exercises.length + ' done');
+    const body = g.querySelector('.cg-body');
+    exercises.forEach((e) => {
+      const item = renderCalItem('#22d3ee',
+        '<b>' + escHtml(e.name) + (e.done ? ' âœ“' : '') + '</b>'
+        + '<span>' + escHtml(ACTIVITY_LABELS[e.activity] || e.activity || 'Other') + ' Â· ' + (e.sets || 0) + ' sets Ã— ' + (e.reps || 0) + ' reps</span>');
+      body.appendChild(item);
+    });
+    container.appendChild(g);
+  }
+
+  // Meals
+  MEAL_TYPES.forEach((meal) => {
+    const items = meals[meal];
+    if (!items || !items.length) return;
+    const g = renderCalGroup(MEAL_LABELS[meal], items.length + ' item' + (items.length > 1 ? 's' : ''));
+    const body = g.querySelector('.cg-body');
+    items.forEach((item) => {
+      body.appendChild(renderCalItem(MEAL_COLOR[meal], '<b>' + escHtml(item.text) + '</b><span>' + MEAL_LABELS[meal] + '</span>'));
+    });
+    container.appendChild(g);
+  });
+
+  // Measurements
+  if (meas.length) {
+    const g = renderCalGroup('Measurements', meas.length + ' log' + (meas.length > 1 ? 's' : ''));
+    const body = g.querySelector('.cg-body');
+    const nodes = loadBodyNodes();
+    meas.forEach((entry) => {
+      const parts = [];
+      Object.entries(nodes).forEach(([key, node]) => {
+        if (typeof entry[key] === 'number' && entry[key] !== null && entry[key] !== undefined) {
+          parts.push(node.label + ': ' + entry[key] + (node.unit ? ' ' + node.unit : ''));
+        }
+      });
+      const summary = parts.join(' Â· ');
+      body.appendChild(renderCalItem('#a78bfa', '<b>' + entry.date.toLocaleDateString() + '</b><span>' + (summary || 'Measurement entry') + '</span>'));
+    });
+    container.appendChild(g);
+  }
+}
+

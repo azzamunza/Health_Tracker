@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -20,7 +20,7 @@
 
   <div class="auth-screen" id="authScreen">
     <div class="auth-card">
-      <div class="auth-logo">ðŸ“Š</div>
+      <div class="auth-logo">📊</div>
       <h1>HealthTracker</h1>
       <p>Sign in with your Google account to securely access your health tracking data from any device.</p>
       <button type="button" id="loginBtn" class="primary-btn">Sign in with Google</button>
@@ -42,204 +42,398 @@
       </div>
     </header>
 
-    <section class="hero-card">
-      <div class="hero-copy">
-        <p class="hero-kicker">Measure. Track. Transform.</p>
-        <span class="hero-tag">Your body.<br><em>Your data.</em><br>Your edge.</span>
-        <p>Track every measurement, see <strong>real progress</strong>, and stay focused on your transformation.</p>
-      </div>
-      <div class="hero-image" aria-hidden="true"></div>
-    </section>
+    <nav class="app-nav" id="appNav" aria-label="Main navigation">
+      <button type="button" class="nav-link" data-view="dashboard">Dashboard</button>
+      <button type="button" class="nav-link" data-view="calendar">Calendar</button>
+      <button type="button" class="nav-link" data-view="diet">Diet</button>
+      <button type="button" class="nav-link" data-view="peptides">Peptides</button>
+      <button type="button" class="nav-link" data-view="exercise">Exercise</button>
+    </nav>
 
-    <section class="feature-strip">
-      <article class="feature">
-        <div class="feature-icon">ðŸ“</div>
-        <h3>Custom measurements</h3>
-        <p>Track the body metrics that matter most to you.</p>
-      </article>
-      <article class="feature">
-        <div class="feature-icon">ðŸ“ˆ</div>
-        <h3>Track progress</h3>
-        <p>Review your history and compare your latest entries.</p>
-      </article>
-      <article class="feature">
-        <div class="feature-icon">ðŸŽ¯</div>
-        <h3>Stay focused</h3>
-        <p>Save notes, define goals, and keep momentum in one place.</p>
-      </article>
-    </section>
-
-    <section class="summary-cards">
-      <article class="card summary-top-card">
-        <div class="summary-top-grid">
-          <div class="summary-top-item">
-            <h2>Latest Entry</h2>
-            <p id="latestDate">No entries yet</p>
-          </div>
-          <div class="summary-top-item">
-            <h2>Total Logs</h2>
-            <p id="totalLogs">0</p>
-          </div>
+    <!-- ── Dashboard ── -->
+    <section class="view-page" id="view-dashboard">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <p class="hero-kicker">Measure. Track. Transform.</p>
+          <span class="hero-tag">Your body.<br><em>Your data.</em><br>Your edge.</span>
+          <p>Track every measurement, schedule your protocol, and stay focused on your transformation.</p>
         </div>
-      </article>
-      <article class="card profile-goals-panel">
-        <div class="profile-goals-header">
-          <div>
-            <h2>Profile &amp; Goals</h2>
-            <p>Your details, targets and progress in one place.</p>
-          </div>
-          <button type="button" id="profileEditBtn" class="icon-btn" title="Edit profile and goals" aria-label="Edit profile and goals">âš™</button>
-        </div>
+        <div class="hero-image" aria-hidden="true"></div>
+      </section>
 
-        <div class="profile-goals-grid" id="profileGoalsView">
-          <div id="profileView" class="profile-view">
-            <p class="profile-empty">Add your profile details to personalise your dashboard.</p>
-          </div>
-          <div class="goals-panel">
-            <h3 class="goals-heading">Goals</h3>
-            <div id="goalsList" class="goals-list"></div>
-          </div>
-        </div>
+      <section class="feature-strip">
+        <article class="feature">
+          <div class="feature-icon">📏</div>
+          <h3>Custom measurements</h3>
+          <p>Track the body metrics that matter most to you.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-icon">📈</div>
+          <h3>Track progress</h3>
+          <p>Review your history and compare your latest entries.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-icon">🎯</div>
+          <h3>Stay focused</h3>
+          <p>Save notes, define goals, and keep momentum in one place.</p>
+        </article>
+      </section>
 
-        <div class="profile-edit-view hidden" id="profileEditView">
-          <h3 class="edit-heading">Edit profile &amp; goals</h3>
-          <div class="profile-form" id="profileForm">
-            <div class="profile-form-grid">
-              <label>Name <input type="text" id="profileName" placeholder="Your name" /></label>
-              <label>Age <input type="number" id="profileAge" placeholder="Age" min="0" /></label>
-              <label>Sex <select id="profileSex"><option value="">â€”</option><option value="male">Male</option><option value="female">Female</option></select></label>
-              <label>Height (cm) <input type="number" id="profileHeight" placeholder="Height" min="0" /></label>
-              <label>Weight (kg) <input type="number" id="profileWeight" placeholder="Weight" min="0" /></label>
-              <label>Avg Sleep (hrs) <input type="number" id="profileSleep" placeholder="Hours" min="0" step="0.5" /></label>
+      <section class="summary-cards">
+        <article class="card summary-top-card">
+          <div class="summary-top-grid">
+            <div class="summary-top-item">
+              <h2>Latest Entry</h2>
+              <p id="latestDate">No entries yet</p>
+            </div>
+            <div class="summary-top-item">
+              <h2>Total Logs</h2>
+              <p id="totalLogs">0</p>
             </div>
           </div>
-          <div class="goals-editor" id="goalsEditor">
-            <div class="goals-editor-heading">Goals</div>
-            <div class="goals-editor-grid" id="goalsEditorRows"></div>
-          </div>
-          <div class="profile-edit-actions">
-            <button type="button" id="saveProfileBtn" class="primary-btn">Save</button>
-            <button type="button" id="cancelProfileEditBtn" class="ghost-btn">Cancel</button>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <section class="body-graph-section">
-      <div class="section-header">
-        <h2>Body progress dashboard</h2>
-        <p>Tap an outline area or choose full body to see historical progress.</p>
-      </div>
-      <div class="body-graph-grid">
-        <div class="body-outline-card">
-          <div class="outline-header outline-edit-header">
+        </article>
+        <article class="card profile-goals-panel">
+          <div class="profile-goals-header">
             <div>
-              <h3>Body zones</h3>
-              <p>Toggle nodes to add their data to the improvement chart.</p>
+              <h2>Profile &amp; Goals</h2>
+              <p>Your details, targets and progress in one place.</p>
             </div>
-            <div class="outline-edit-actions">
-              <button type="button" id="toggleBodyEdit" class="ghost-btn">Edit layout</button>
-              <button type="button" id="addBodyNode" class="ghost-btn hidden">Add node</button>
-            </div>
+            <button type="button" id="profileEditBtn" class="icon-btn" title="Edit profile and goals" aria-label="Edit profile and goals">⚙</button>
           </div>
-          <div class="body-outline" id="bodyOutline" aria-label="Body measurement map">
-            <div class="body-outline-canvas" id="bodyOutlineCanvas"></div>
-          </div>
-          <div class="body-outline-footer">
-            <div class="body-outline-buttons" id="bodyNodeButtons" aria-label="Whole body measurements"></div>
-            <p class="outline-note">Toggle nodes on and off to add their measurement data to the line graph.</p>
-            <p id="adminNote" class="admin-note hidden">Admin: editing the default layout. Drag nodes into position, then press Save layout to update these positions for all new users.</p>
-            <button type="button" id="saveBodyLayout" class="primary-btn hidden">Save layout</button>
-          </div>
-        </div>
-        <div class="chart-card" id="chartCard">
-          <div class="chart-topbar">
-            <div class="chart-title">
-              <h3 id="chartTitle">Improvement Chart</h3>
-              <span id="chartSubtitle">Toggle nodes below to add their measurement data</span>
-            </div>
-          </div>
-          <div class="node-property-panel hidden" id="nodePropertyPanel">
-            <div class="node-property-row">
-              <label>
-                Node label
-                <input type="text" id="selectedNodeLabel" placeholder="Select a node" readonly />
-              </label>
-              <label class="system-toggle">
-                <input type="checkbox" id="nodeSystemToggle" /> Whole body
-              </label>
-            </div>
-            <div class="node-property-row">
-              <label class="symmetry-toggle">
-                <input type="checkbox" id="nodeSymmetryToggle" /> Symmetry
-              </label>
-              <label>
-                Unit
-                <select id="nodeUnit"></select>
-              </label>
-            </div>
-            <div class="node-property-row">
-              <label>
-                Node color
-                <input type="color" id="nodeColor" value="#22d3ee" />
-              </label>
-              <label class="mirror-color hidden" id="mirrorColorWrapper">
-                Mirror color
-                <input type="color" id="nodeMirrorColor" value="#38bdf8" />
-              </label>
-            </div>
 
+          <div class="profile-goals-grid" id="profileGoalsView">
+            <div id="profileView" class="profile-view">
+              <p class="profile-empty">Add your profile details to personalise your dashboard.</p>
+            </div>
+            <div class="goals-panel">
+              <h3 class="goals-heading">Goals</h3>
+              <div id="goalsList" class="goals-list"></div>
+            </div>
           </div>
-          <div class="chart-wrap">
-            <canvas id="bodyChartCanvas" width="800" height="420"></canvas>
+
+          <div class="profile-edit-view hidden" id="profileEditView">
+            <h3 class="edit-heading">Edit profile &amp; goals</h3>
+            <div class="profile-form" id="profileForm">
+              <div class="profile-form-grid">
+                <label>Name <input type="text" id="profileName" placeholder="Your name" /></label>
+                <label>Age <input type="number" id="profileAge" placeholder="Age" min="0" /></label>
+                <label>Sex <select id="profileSex"><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select></label>
+                <label>Height (cm) <input type="number" id="profileHeight" placeholder="Height" min="0" /></label>
+                <label>Weight (kg) <input type="number" id="profileWeight" placeholder="Weight" min="0" /></label>
+                <label>Avg Sleep (hrs) <input type="number" id="profileSleep" placeholder="Hours" min="0" step="0.5" /></label>
+              </div>
+            </div>
+            <div class="goals-editor" id="goalsEditor">
+              <div class="goals-editor-heading">Goals</div>
+              <div class="goals-editor-grid" id="goalsEditorRows"></div>
+            </div>
+            <div class="profile-edit-actions">
+              <button type="button" id="saveProfileBtn" class="primary-btn">Save</button>
+              <button type="button" id="cancelProfileEditBtn" class="ghost-btn">Cancel</button>
+            </div>
           </div>
-          <div class="chart-meta">
-            <span id="chartDataNote">Toggle nodes below to add their data to the chart.</span>
+        </article>
+      </section>
+
+      <section class="body-graph-section">
+        <div class="section-header">
+          <h2>Body progress dashboard</h2>
+          <p>Tap an outline area or choose full body to see historical progress.</p>
+        </div>
+        <div class="body-graph-grid">
+          <div class="body-outline-card">
+            <div class="outline-header outline-edit-header">
+              <div>
+                <h3>Body zones</h3>
+                <p>Toggle nodes to add their data to the improvement chart.</p>
+              </div>
+              <div class="outline-edit-actions">
+                <button type="button" id="toggleBodyEdit" class="ghost-btn">Edit layout</button>
+                <button type="button" id="addBodyNode" class="ghost-btn hidden">Add node</button>
+              </div>
+            </div>
+            <div class="body-outline" id="bodyOutline" aria-label="Body measurement map">
+              <div class="body-outline-canvas" id="bodyOutlineCanvas"></div>
+            </div>
+            <div class="body-outline-footer">
+              <div class="body-outline-buttons" id="bodyNodeButtons" aria-label="Whole body measurements"></div>
+              <p class="outline-note">Toggle nodes on and off to add their measurement data to the line graph.</p>
+              <p id="adminNote" class="admin-note hidden">Admin: editing the default layout. Drag nodes into position, then press Save layout to update these positions for all new users.</p>
+              <button type="button" id="saveBodyLayout" class="primary-btn hidden">Save layout</button>
+            </div>
+          </div>
+          <div class="chart-card" id="chartCard">
+            <div class="chart-topbar">
+              <div class="chart-title">
+                <h3 id="chartTitle">Improvement Chart</h3>
+                <span id="chartSubtitle">Toggle nodes below to add their measurement data</span>
+              </div>
+            </div>
+            <div class="node-property-panel hidden" id="nodePropertyPanel">
+              <div class="node-property-row">
+                <label>
+                  Node label
+                  <input type="text" id="selectedNodeLabel" placeholder="Select a node" readonly />
+                </label>
+                <label class="system-toggle">
+                  <input type="checkbox" id="nodeSystemToggle" /> Whole body
+                </label>
+              </div>
+              <div class="node-property-row">
+                <label class="symmetry-toggle">
+                  <input type="checkbox" id="nodeSymmetryToggle" /> Symmetry
+                </label>
+                <label>
+                  Unit
+                  <select id="nodeUnit"></select>
+                </label>
+              </div>
+              <div class="node-property-row">
+                <label>
+                  Node color
+                  <input type="color" id="nodeColor" value="#22d3ee" />
+                </label>
+                <label class="mirror-color hidden" id="mirrorColorWrapper">
+                  Mirror color
+                  <input type="color" id="nodeMirrorColor" value="#38bdf8" />
+                </label>
+              </div>
+
+            </div>
+            <div class="chart-wrap">
+              <canvas id="bodyChartCanvas" width="800" height="420"></canvas>
+            </div>
+            <div class="chart-meta">
+              <span id="chartDataNote">Toggle nodes below to add their data to the chart.</span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section class="form-card">
+        <div class="section-header">
+          <h2>Record Measurements</h2>
+          <p>Save body metrics and notes for every check-in.</p>
+        </div>
+        <div class="estimate-bar">
+          <div class="estimate-title">
+            <strong>Estimate body fat</strong>
+            <span>Uses your profile weight, height, age and sex.</span>
+          </div>
+          <button type="button" id="estimateBodyFatBtn" class="secondary-btn">Estimate</button>
+        </div>
+        <form id="entryForm">
+          <div class="row">
+            <label>
+              Date
+              <input type="date" id="date" name="date" required />
+            </label>
+          </div>
+          <div id="measurementFields" class="measurement-fields"></div>
+          <div class="row">
+            <label>
+              Note
+              <input type="text" id="notes" name="notes" placeholder="Optional note" />
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary-btn form-submit-btn">Save Entry</button>
+            <button type="button" id="cancelEditBtn" class="ghost-btn hidden">X</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="entries-section">
+        <div class="section-header">
+          <h2>Measurement History</h2>
+          <p>Scroll through your saved body metrics and review past progress.</p>
+        </div>
+        <div id="entriesList" class="entries-list"></div>
+      </section>
     </section>
 
-    <section class="form-card">
-      <div class="section-header">
-        <h2>Record Measurements</h2>
-        <p>Save body metrics and notes for every check-in.</p>
+    <!-- ── Calendar ── -->
+    <section class="view-page hidden" id="view-calendar">
+      <div class="page-head">
+        <div>
+          <h2>Calendar</h2>
+          <p>Your daily overview — logs, meals, exercises and protocol.</p>
+        </div>
       </div>
-      <div class="estimate-bar">
-        <div class="estimate-title">
-          <strong>Estimate body fat</strong>
-          <span>Uses your profile weight, height, age and sex.</span>
-        </div>
-        <button type="button" id="estimateBodyFatBtn" class="secondary-btn">Estimate</button>
+      <div class="cal-nav">
+        <button type="button" id="calPrev" class="secondary-btn">◀ Prev</button>
+        <div class="cal-date" id="calDateLabel">—</div>
+        <button type="button" id="calNext" class="secondary-btn">Next ▶</button>
       </div>
-      <form id="entryForm">
-        <div class="row">
-          <label>
-            Date
-            <input type="date" id="date" name="date" required />
-          </label>
-        </div>
-        <div id="measurementFields" class="measurement-fields"></div>
-        <div class="row">
-          <label>
-            Note
-            <input type="text" id="notes" name="notes" placeholder="Optional note" />
-          </label>
-        </div>
+      <div class="cal-stats">
+        <div class="cal-stat"><span>Peptides</span><strong id="calPeptideCount">0</strong></div>
+        <div class="cal-stat"><span>Workouts</span><strong id="calWorkoutCount">0</strong></div>
+        <div class="cal-stat"><span>Meals</span><strong id="calMealCount">0</strong></div>
+        <div class="cal-stat"><span>Measurements</span><strong id="calMeasCount">0</strong></div>
+      </div>
+      <div id="calendarDay" class="cal-day"></div>
+    </section>
 
+    <!-- ── Diet ── -->
+    <section class="view-page hidden" id="view-diet">
+      <div class="page-head">
+        <div>
+          <h2>Diet</h2>
+          <p>Plan meals for each day — morning, lunch, dinner, snacks and alcohol.</p>
+        </div>
+      </div>
+      <div class="cal-nav">
+        <button type="button" id="dietPrev" class="secondary-btn">◀ Prev</button>
+        <div class="cal-date" id="dietDateLabel">—</div>
+        <button type="button" id="dietNext" class="secondary-btn">Next ▶</button>
+      </div>
+      <form id="dietForm" class="diet-form">
+        <div class="row">
+          <label>Date
+            <input type="date" id="dietDate" required />
+          </label>
+          <label>Meal type
+            <select id="dietMeal">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+              <option value="alcohol">Alcohol</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label>Item
+            <input type="text" id="dietItem" placeholder="e.g. Oats + berries, grilled chicken salad…" required />
+          </label>
+        </div>
+        <div class="diet-hint" id="dietAlcoholHint" hidden>Recorded as an alcohol item.</div>
         <div class="form-actions">
-          <button type="submit" class="primary-btn form-submit-btn">Save Entry</button>
-          <button type="button" id="cancelEditBtn" class="ghost-btn hidden">X</button>
+          <button type="submit" class="primary-btn">Add meal</button>
         </div>
       </form>
+      <div class="diet-grid" id="dietGrid"></div>
     </section>
 
-    <section class="entries-section">
-      <div class="section-header">
-        <h2>Measurement History</h2>
-        <p>Scroll through your saved body metrics and review past progress.</p>
+    <!-- ── Peptides ── -->
+    <section class="view-page hidden" id="view-peptides">
+      <div class="page-head">
+        <div>
+          <h2>Peptides</h2>
+          <p>Add compounds to your protocol and schedule each dose.</p>
+        </div>
       </div>
-      <div id="entriesList" class="entries-list"></div>
+      <div class="pep-layout">
+        <div class="card pep-list-card">
+          <div class="section-header">
+            <h2>My protocol</h2>
+            <p>Select a compound to add it to your profile.</p>
+          </div>
+          <div class="pep-picker">
+            <input type="text" id="pepSearch" placeholder="Search the compound list…" />
+            <select id="pepSelect"></select>
+            <button type="button" id="pepAddBtn" class="primary-btn">Add to protocol</button>
+          </div>
+          <div id="pepProfile" class="pep-profile"></div>
+        </div>
+        <div class="card pep-sched-card">
+          <div class="section-header">
+            <h2>Schedule a dose</h2>
+            <p>Pick a date &amp; time, set a dose, mark complete, add notes.</p>
+          </div>
+          <form id="pepForm" class="pep-form">
+            <div class="row">
+              <label>Compound
+                <select id="pepDoseSelect" required></select>
+              </label>
+              <label>Date
+                <input type="date" id="pepDoseDate" required />
+              </label>
+            </div>
+            <div class="row">
+              <label>Time
+                <input type="time" id="pepDoseTime" />
+              </label>
+              <label>Dose
+                <input type="text" id="pepDose" placeholder="e.g. 250 mcg" />
+              </label>
+            </div>
+            <div class="row">
+              <label>Note
+                <input type="text" id="pepNote" placeholder="e.g. take with food / on empty stomach…" />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary-btn">Schedule dose</button>
+            </div>
+          </form>
+          <div class="pep-schedule" id="pepSchedule"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Exercise ── -->
+    <section class="view-page hidden" id="view-exercise">
+      <div class="page-head">
+        <div>
+          <h2>Exercise</h2>
+          <p>Log home workouts — dumbbells or bodyweight — and track sets &amp; reps.</p>
+        </div>
+      </div>
+      <div class="card ex-library-card">
+        <div class="section-header">
+          <h2>Exercise library</h2>
+          <p>Add curated home exercises to your day, or log your own.</p>
+        </div>
+        <div class="ex-actions">
+          <input type="text" id="exSearch" placeholder="Search the library…" />
+          <label class="ex-filter">Show shared only <input type="checkbox" id="exSharedOnly" /></label>
+        </div>
+        <div id="exLibrary" class="ex-library"></div>
+      </div>
+      <div class="card ex-log-card">
+        <div class="section-header">
+          <h2>Log a workout</h2>
+          <p>Add an exercise with activity, sets and reps.</p>
+        </div>
+        <form id="exForm" class="ex-form">
+          <div class="row">
+            <label>Date
+              <input type="date" id="exDate" required />
+            </label>
+            <label>Activity type
+              <select id="exActivity">
+                <option value="strength">Strength</option>
+                <option value="cardio">Cardio</option>
+                <option value="mobility">Mobility</option>
+                <option value="core">Core</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <label>Exercise
+              <input type="text" id="exName" placeholder="e.g. Goblet squat" required />
+            </label>
+          </div>
+          <div class="row ex-sets-row">
+            <label>Sets
+              <input type="number" id="exSets" min="0" step="1" placeholder="e.g. 4" />
+            </label>
+            <label>Reps
+              <input type="number" id="exReps" min="0" step="1" placeholder="e.g. 12" />
+            </label>
+            <label class="ex-share">
+              <input type="checkbox" id="exShared" /> Make available to everyone
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary-btn">Log exercise</button>
+          </div>
+        </form>
+        <div id="exLog" class="ex-log"></div>
+      </div>
     </section>
   </div>
 
@@ -247,4 +441,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-

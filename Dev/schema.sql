@@ -17,6 +17,9 @@ create table if not exists public.user_data (
   profile jsonb,
   goals jsonb,
   entries jsonb not null default '[]'::jsonb,
+  peptides jsonb not null default '[]'::jsonb,   -- Peptide profile + schedule entries
+  exercises jsonb not null default '[]'::jsonb,  -- Exercise log entries
+  diet jsonb not null default '{}'::jsonb,       -- Meal plans keyed by date
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -1907,7 +1907,7 @@ function renderLibraryBase(source) {
       + '<span class="ec-tag">' + escHtml(ACTIVITY_LABELS[entry.activity] || entry.activity || 'Other') + '</span></div>'
       + '<div class="ec-meta"><span>Sets ' + (entry.sets || 0) + '</span><span>Reps ' + (entry.reps || 0) + '</span></div>'
       + '<button type="button" class="ec-add">Log for today</button>';
-    card.querySelector('.ec-add').addEventListener('click', () => logFromLibrary(entry));
+    card.querySelector('.ec-add').addEventListener('click', () => logLibraryToday(entry));
     el.appendChild(card);
   });
 }
@@ -2172,17 +2172,23 @@ function dayAllowed(rule, d) {
   return true;
 }
 
+// Normalise the unit freq values the form stores ("day','week'...) to the engine
+// values ("daily'/'weekly'...), and also accept legacy values stored either way.
+const FREQ_NORM = { day: 'daily', week: 'weekly', month: 'monthly', year: 'yearly' };
+
 // Shift a candidate date forward to its next allowed occurrence for the rule.
 function nextOccurrence(rule, d) {
-  if (!dayAllowed(rule, d)) return null;
-  if (rule.freq === 'once') return d;
-  if (rule.freq === 'daily') return d;
-  if (rule.freq === 'weekly') {
-    if (rule.onDays && rule.onDays.length) return d;
-    return addDays(d, 7 * (rule.interval || 1));
+  const f = FREQ_NORM[rule.freq] || rule.freq;
+  // Weekly with "On these days": walk day-by-day; occurrencesOf filters allowed days.
+  if (f === 'weekly' && rule.onDays && rule.onDays.length) {
+    return addDays(d, 1);
   }
-  if (rule.freq === 'monthly') return addMonths(d, rule.interval || 1);
-  if (rule.freq === 'yearly') return addYears(d, rule.interval || 1);
+  if (!dayAllowed(rule, d)) return null;
+  if (f === 'once') return d;
+  if (f === 'daily') return d;
+  if (f === 'weekly') return addDays(d, 7 * (rule.interval || 1));
+  if (f === 'monthly') return addMonths(d, rule.interval || 1);
+  if (f === 'yearly') return addYears(d, rule.interval || 1);
   return null;
 }
 
@@ -2190,6 +2196,8 @@ function nextOccurrence(rule, d) {
 // day so one-time items render. `cap` guards runaway expansions.
 function occurrencesOf(item, startDay, endDay) {
   const rule = item.r || {};
+  const f = FREQ_NORM[rule.freq] || rule.freq;
+  const dailyStep = (f === 'weekly' && rule.onDays && rule.onDays.length) ? 1 : 0;
   const end = rule.end || {};
   const out = [];
   const start = keyToDateObj(item.date);
@@ -2205,12 +2213,12 @@ function occurrencesOf(item, startDay, endDay) {
     iterDays = Math.max((horizon.getTime() - start.getTime()) / dayMs + (rule.interval || 1) * 730, 3660);
   } else {
     iterDays = end.type === 'after'
-      ? (end.count || 1) * (rule.interval || 1) * (rule.freq === 'daily' ? 1 : rule.freq === 'weekly' ? 7 : rule.freq === 'monthly' ? 31 : 366)
+      ? (end.count || 1) * (rule.interval || 1) * ((f === 'daily' || dailyStep) ? 1 : f === 'weekly' ? 7 : f === 'monthly' ? 31 : 366)
       : (end.date ? (keyToDateObj(end.date).getTime() - start.getTime()) / dayMs + 5 : 3660);
   }
   iterDays = Math.min(Math.max(iterDays, 1), 40000);
 
-  if (rule.freq === 'once') {
+  if (f === 'once') {
     if (sameDay(start, startDay) || (start >= startDay && start <= endDay)) out.push(start);
     return out;
   }
@@ -2235,7 +2243,7 @@ function occurrencesOf(item, startDay, endDay) {
     if (!nx) break;
     if (fmtKey(nx) === key) { cur = addDays(cur, 1); continue; } // safety: never loop on same key
     cur = nx;
-    iterDays -= rule.freq === 'daily' ? rule.interval : rule.freq === 'weekly' ? 7 * rule.interval : rule.freq === 'monthly' ? 31 * rule.interval : rule.freq === 'yearly' ? 366 * rule.interval : 1;
+    iterDays -= (f === 'daily' || dailyStep) ? rule.interval : f === 'weekly' ? 7 * rule.interval : f === 'monthly' ? 31 * rule.interval : f === 'yearly' ? 366 * rule.interval : 1;
     if (iterDays <= 0 && end.type === 'never') break;
   }
   return out;
@@ -2401,10 +2409,11 @@ function renderDashboardToday() {
 }
 
 function syncAllWeeks() {
+  syncFormStartDates();
   if (document.getElementById('calWeekGrid') && !document.getElementById('view-calendar').classList.contains('hidden')) renderCalendarWeek();
-  if (document.getElementById('dietWeekGrid') && !document.getElementById('view-diet').classList.contains('hidden')) renderScheduleWeek('diet');
-  if (document.getElementById('pepWeekGrid') && !document.getElementById('view-peptides').classList.contains('hidden')) renderScheduleWeek('peptide');
-  if (document.getElementById('exWeekGrid') && !document.getElementById('view-exercise').classList.contains('hidden')) renderScheduleWeek('exercise');
+  if (document.getElementById('dietWeekGrid') && !document.getElementById('view-diet').classList.contains('hidden')) { renderScheduleWeek('diet'); renderWeekList('diet'); }
+  if (document.getElementById('pepWeekGrid') && !document.getElementById('view-peptides').classList.contains('hidden')) { renderScheduleWeek('peptide'); renderWeekList('peptide'); }
+  if (document.getElementById('exWeekGrid') && !document.getElementById('view-exercise').classList.contains('hidden')) { renderScheduleWeek('exercise'); renderWeekList('exercise'); }
   renderDashboardToday();
 }
 
@@ -2476,87 +2485,48 @@ function setDaysChecked(prefix, value) {
   document.querySelectorAll('.' + cls).forEach((cb) => { cb.checked = value; });
 }
 
-function wireSchedKind(prefix) {
-  const kind = field(prefix, 'Kind');
-  if (!kind) return;
-  const map = {
-    diet: { main: 'DietFields', key: field(prefix, 'Meal'), star: field(prefix, 'DietItems') },
-    exercise: { main: 'ExerciseFields', key: field(prefix, 'ExActivity'), star: field(prefix, 'ExSets') },
-    peptide: { main: 'PeptideFields', key: field(prefix, 'PepSelect'), star: field(prefix, 'PepDose') }
-  };
-  const fieldsets = ['DietFields', 'ExerciseFields', 'PeptideFields'];
-  // Peptide page default kind is peptide; diet page default diet; exercise page default exercise.
-  const apply = () => {
-    const k = kind.value || 'diet';
-    fieldsets.forEach((n) => {
-      const el = field(prefix, n);
-      if (el) el.classList.toggle('hidden', n !== map[k].main);
-    });
+// Each page is bound to a single schedule kind (the "Item type" dropdown is removed).
+const SCHED_KIND = { sched: 'diet', schedPep: 'peptide', schedEx: 'exercise' };
+const SCHED_GRID = { diet: 'dietWeekGrid', peptide: 'pepWeekGrid', exercise: 'exWeekGrid' };
+const SCHED_LABEL = { diet: 'dietDateLabel', peptide: 'pepDateLabel', exercise: 'exDateLabel' };
+const SCHED_LIST = { diet: 'dietWeekList', peptide: 'pepWeekList', exercise: 'exWeekList' };
+const SCHED_PREFIXES = ['sched', 'schedPep', 'schedEx'];
+
+// Pin every page's "Start date" to the start (Sunday) of the selected week.
+function syncFormStartDates() {
+  const key = fmtKey(weekStart(keyToDateObj(weekCursorKey)));
+  SCHED_PREFIXES.forEach((prefix) => { const el = field(prefix, 'Start'); if (el) el.value = key; });
+}
+
+// Peptide page: auto-fill the title from the chosen compound while the title is empty.
+function wirePeptideAutofill(prefix) {
+  const sel = field(prefix, 'PepSelect');
+  if (!sel) return;
+  sel.addEventListener('change', () => {
     const title = field(prefix, 'Title');
-    if (k === 'peptide') {
-      const sel = map[k].key;
-      const meta2 = sel && sel.value ? getPeptideMeta(sel.value) : null;
-      if (title && meta2 && !title.value) title.value = meta2.name;
-      if (sel) sel.addEventListener('change', () => { if (title && !title.value) title.value = getPeptideMeta(sel.value).name; });
-    }
-  };
-  kind.addEventListener('change', apply);
-  apply();
+    if (title && !title.value && sel.value) title.value = getPeptideMeta(sel.value).name;
+  });
 }
 
 function wireScheduleForm(prefix) {
-  const kindSel = field(prefix, 'Kind');
-  const title = field(prefix, 'Title');
+  const kind = SCHED_KIND[prefix];
   const start = field(prefix, 'Start');
   const addBtn = field(prefix, 'AddBtn');
   if (!start) return;
 
-  // presets
-  document.querySelectorAll('#' + (prefix === 'sched' ? 'view-diet' : prefix === 'schedPep' ? 'view-peptides' : 'view-exercise') + ' .preset[data-preset]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const p = btn.getAttribute('data-preset');
-      const n = field(prefix, 'RepeatN');
-      const unit = field(prefix, 'RepeatUnit');
-      // map preset -> (unit, default interval)
-      const map2 = {
-        once: { unit: 'once' },
-        daily: { unit: 'day', n: 1 },
-        weekly: { unit: 'week', n: 1 },
-        weekdays: { unit: 'week', n: 1, days: [1, 2, 3, 4, 5] },
-        monthly: { unit: 'month', n: 1 }
-      };
-      const c = map2[p] || {};
-      setDaysChecked(prefix, false);
-      if (c.days) c.days.forEach((d) => {
-        document.querySelectorAll('.' + ('schedDay' + (prefix === 'schedPep' ? 'Pep' : prefix === 'schedEx' ? 'Ex' : '')) + '[value="' + d + '"]').forEach((cb) => cb.checked = true);
-      });
-      if (unit) unit.value = c.unit || 'week';
-      if (n) n.value = c.n || 1;
-      if (c.unit === 'once') document.getElementById((prefix === 'sched' ? 'schedEnd' : prefix + 'End')).querySelector('[value="never"]').checked = true;
-    });
-  });
+  if (kind === 'peptide') wirePeptideAutofill(prefix);
 
-  // start date
-  if (start) {
-    if (!start.value) start.value = fmtKey(new Date());
-    start.addEventListener('change', () => { if (start.value) { weekCursorKey = start.value; syncAllWeeks(); } });
-    // date picker sync label
-    if (field(prefix === 'sched' ? 'Diet' : prefix === 'schedPep' ? 'Pep' : 'Ex', 'DatePicker')) {}
-  }
-
-  // ends radio
-  ['schedEnd', 'schedEndPep', 'schedEndEx'].forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.querySelectorAll('input[name]').forEach((r) => r.addEventListener('change', () => {}));
+  // The "Start date" only picks the selected week; "On These Days" picks the days.
+  syncFormStartDates();
+  start.addEventListener('change', () => {
+    if (start.value) { weekCursorKey = fmtKey(weekStart(keyToDateObj(start.value))); syncAllWeeks(); }
   });
 
   if (addBtn) addBtn.addEventListener('click', () => addScheduleItem(prefix));
-  wireSchedKind(prefix);
 }
 
 function addScheduleItem(prefix) {
-  const kind = field(prefix, 'Kind') ? field(prefix, 'Kind').value : (prefix === 'schedPep' ? 'peptide' : prefix === 'schedEx' ? 'exercise' : 'diet');
+  const kind = SCHED_KIND[prefix];
   const titleEl = field(prefix, 'Title');
   const startEl = field(prefix, 'Start');
   const title = titleEl ? titleEl.value.trim() : '';
@@ -2570,7 +2540,7 @@ function addScheduleItem(prefix) {
   const n = nEl ? Math.max(1, parseInt(nEl.value, 10) || 1) : 1;
 
   const r = {
-    freq: unit === 'once' ? 'once' : unit,
+    freq: unit === 'once' ? 'once' : (FREQ_NORM[unit] || unit),
     interval: unit === 'once' ? 1 : n,
     onDays: readDays(prefix, null)
   };
@@ -2652,9 +2622,9 @@ function logLibraryToday(libEntry) {
 
 /* â•â•â•â•â•â•â•â•â•â•â•â• PANEL RENDER + INIT â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderScheduleWeek(kind) {
-  const gridEl = document.getElementById(kind + 'WeekGrid');
+  const gridEl = document.getElementById(SCHED_GRID[kind]);
   if (gridEl) renderWeekGrid(gridEl, kind, keyToDateObj(weekCursorKey));
-  const label = document.getElementById(kind + 'DateLabel');
+  const label = document.getElementById(SCHED_LABEL[kind]);
   if (label) { const s = weekStart(keyToDateObj(weekCursorKey)); const e = addDays(s, 6); label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e); }
 }
 
@@ -2664,14 +2634,57 @@ function showView(view) {
   document.querySelectorAll('.view-page').forEach((page) => page.classList.toggle('hidden', page.id !== 'view-' + view));
   document.querySelectorAll('.nav-link').forEach((btn) => btn.classList.toggle('active', btn.dataset.view === view));
   if (view === 'calendar') renderCalendar();
-  else if (view === 'diet') renderScheduleWeek('diet');
-  else if (view === 'peptides') { renderPeptideProfile(); populateSchedPeptideSelects(); renderScheduleWeek('peptide'); }
-  else if (view === 'exercise') { renderLibrary(); renderScheduleWeek('exercise'); }
+  else if (view === 'diet') { renderScheduleWeek('diet'); renderWeekList('diet'); }
+  else if (view === 'peptides') { renderPeptideProfile(); populateSchedPeptideSelects(); renderScheduleWeek('peptide'); renderWeekList('peptide'); }
+  else if (view === 'exercise') { renderLibrary(); renderScheduleWeek('exercise'); renderWeekList('exercise'); }
   else if (view === 'dashboard') renderDashboardToday();
 }
 
 // Re-declared calendar render (picks up the redefined showView view id 'calendar').
 function renderCalendar() { renderCalendarWeek(); }
+
+// A compact list of this page's scheduled items for the selected week (each viewable/removable).
+function renderWeekList(kind) {
+  const el = document.getElementById(SCHED_LIST[kind]); if (!el) return;
+  const rs = weekStart(keyToDateObj(weekCursorKey));
+  const re = weekEnd(rs);
+  const rows = [];
+  loadSchedule().forEach((item) => {
+    if ((item.kind || 'diet') !== kind) return;
+    const occs = occurrencesOf(item, rs, re);
+    if (!occs.length) return;
+    const days = {};
+    occs.forEach((d) => { days[d.getDay()] = true; });
+    rows.push({ item, days: Object.keys(days).map(Number).sort((a, b) => a - b) });
+  });
+  if (!rows.length) {
+    el.innerHTML = '<p class="wl-empty">Nothing scheduled for this week yet. Use the form above.</p>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  rows.forEach((row) => {
+    const cell = document.createElement('div');
+    cell.className = 'wl-item kind-' + (row.kind || 'diet');
+    const main = document.createElement('span');
+    main.className = 'wl-main';
+    main.innerHTML = scheduleItemSub(row.item);
+    const chips = document.createElement('span');
+    chips.className = 'wl-chips';
+    chips.innerHTML = row.days.map((d) => '<span class="wl-day">' + DAY_NAMES[d] + '</span>').join('');
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'wk-del';
+    del.setAttribute('aria-label', 'Remove');
+    del.textContent = '\u00D7';
+    del.addEventListener('click', () => deleteScheduleItem(row.item.id));
+    cell.appendChild(main);
+    cell.appendChild(chips);
+    cell.appendChild(del);
+    frag.appendChild(cell);
+  });
+  el.innerHTML = '';
+  el.appendChild(frag);
+}
 
 function initSchedule() {
   // wire week nav
@@ -2686,6 +2699,26 @@ function initSchedule() {
   wireScheduleForm('schedPep');   // peptides page
   wireScheduleForm('schedEx');    // exercise page
   populateSchedPeptideSelects();
+
+  // Peptide protocol panel (search + add to protocol).
+  populatePeptideSelect();
+  const pepSearchInput = document.getElementById('pepSearch');
+  if (pepSearchInput) pepSearchInput.addEventListener('input', applyPeptideFilter);
+  const pepAddBtn = document.getElementById('pepAddBtn');
+  if (pepAddBtn) pepAddBtn.addEventListener('click', () => { addPeptideToProfile(); populateSchedPeptideSelects(); });
+
+  // Exercise library (search + shared-only filter).
+  const exSearchInput = document.getElementById('exSearch');
+  if (exSearchInput) exSearchInput.addEventListener('input', renderLibraryFiltered);
+  const exShared = document.getElementById('exSharedOnly');
+  if (exShared) exShared.addEventListener('change', renderLibraryFiltered);
+
+  // Collapsible panels (protocol / library expanders).
+  document.querySelectorAll('.collapsible .collapse-head').forEach((head) => {
+    head.addEventListener('click', () => { const box = head.closest('.collapsible'); if (box) box.classList.toggle('collapsed'); });
+  });
+
+  syncFormStartDates();
   // set week cursors on pickers/labels
   ['cal', 'diet', 'pep', 'ex'].forEach((p) => {
     const picker = document.getElementById(p + 'DatePicker');

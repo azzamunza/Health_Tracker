@@ -185,3 +185,17 @@
 .ts-empty{color:var(--muted);font-size:14px;padding:4px 26px 24px}
 @media(max-width:1000px){.week-grid{grid-template-columns:repeat(3,1fr)}.wk-col:nth-child(n+4){margin-top:0}}
 @media(max-width:640px){.week-grid{grid-template-columns:repeat(2,1fr)}.sched-form .sched-kind{grid-template-columns:1fr}.sched-kind-fields{grid-template-columns:1fr}.week-head{flex-direction:column;align-items:stretch}.week-label{text-align:center}}
+
+/* ---- v3: schedule pages ---- */
+#view-diet,#view-peptides,#view-exercise{display:flex;flex-direction:column}
+#view-peptides .page-head,#view-exercise .page-head,#view-diet .page-head{order:0}
+#view-peptides .pep-list-card,#view-exercise .ex-library-card{order:1}
+#view-diet .sched-form,#view-peptides .sched-form,#view-exercise .sched-form{order:2}
+#view-diet .sched-week-block,#view-peptides .sched-week-block,#view-exercise .sched-week-block{order:3}
+#view-diet .week-list-card,#view-peptides .week-list-card,#view-exercise .week-list-card{order:4}
+.collapsible .collapse-head{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;font:700 13px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#cfd4d9;padding:6px 2px;cursor:pointer}
+.collapsible .chev{transition:transform .18s ease;color:var(--muted)}
+.collapsible.collapsed .chev{transform:rotate(-90deg)}
+.collapsible.collapsed>.collapse-body{display:none}
+.week-list-card{margin-top:14px}.week-list-title{font:700 13px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.week-list{display:flex;flex-direction:column;gap:8px}.wl-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--line);border-radius:6px;background:#0d1218}.wl-item.kind-diet{border-left-color:#ff9d5c}.wl-item.kind-peptide{border-left-color:#f2186b}.wl-item.kind-exercise{border-left-color:#22d3ee}.wl-main{flex:1;min-width:0}.wl-main .ci-main{display:flex;flex-direction:column;gap:2px}.wl-main .ci-main b{color:#fff;font-weight:600;font-size:13px}.wl-main .ci-main span{color:var(--muted);font-size:12px}.wl-chips{display:flex;gap:4px;flex-wrap:wrap}.wl-day{font:500 10px var(--font-mono);color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:2px 5px;text-transform:uppercase}.wl-empty{color:var(--muted);font-size:13px;margin:4px 0}

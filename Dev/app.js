@@ -6,7 +6,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 // In-memory data cache — single source of truth used by the render layer.
 // Writes are queued (debounced) and pushed to the user's Supabase row.
-const dbCache = { nodes: null, profile: null, goals: null, entries: [], peptides: [], exercises: [], diet: {} };
+const dbCache = { nodes: null, profile: null, goals: null, entries: [], peptides: [], exercises: [], diet: {}, schedule: [] };
 let currentUserId = null;
 let writeTimer = null;
 
@@ -154,6 +154,7 @@ function queueDbWrite() {
       peptides: dbCache.peptides,
       exercises: dbCache.exercises,
       diet: dbCache.diet,
+      schedule: dbCache.schedule,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' }).then(({ error }) => {
       if (error) console.warn('Supabase write failed (schema ready?)', error.message);
@@ -1557,6 +1558,7 @@ async function hydrateUserData(userId) {
     dbCache.peptides = Array.isArray(data.peptides) ? data.peptides : [];
     dbCache.exercises = Array.isArray(data.exercises) ? data.exercises : [];
     dbCache.diet = data.diet || {};
+    dbCache.schedule = Array.isArray(data.schedule) ? data.schedule : [];
   } else if (!error) {
     // First-time user: persist the initialised row (goals active by default).
     queueDbWrite();
@@ -1611,6 +1613,7 @@ async function initApp() {
       dbCache.peptides = [];
       dbCache.exercises = [];
       dbCache.diet = {};
+      dbCache.schedule = [];
       showAuth();
     }
   });
@@ -1738,22 +1741,7 @@ function initNewPages() {
   document.querySelectorAll('.nav-link').forEach((btn) => {
     btn.addEventListener('click', () => showView(btn.dataset.view));
   });
-  const cP = document.getElementById('calPrev'); if (cP) cP.addEventListener('click', () => { currentDay = toDateKey(shiftDate(keyToDate(currentDay), -1)); renderCalendar(); });
-  const cN = document.getElementById('calNext'); if (cN) cN.addEventListener('click', () => { currentDay = toDateKey(shiftDate(keyToDate(currentDay), 1)); renderCalendar(); });
-  const dP = document.getElementById('dietPrev'); if (dP) dP.addEventListener('click', () => { dietCursor = toDateKey(shiftDate(keyToDate(dietCursor), -1)); renderDiet(); });
-  const dN = document.getElementById('dietNext'); if (dN) dN.addEventListener('click', () => { dietCursor = toDateKey(shiftDate(keyToDate(dietCursor), 1)); renderDiet(); });
-
-  const dietDate = document.getElementById('dietDate'); if (dietDate && !dietDate.value) dietDate.value = todayKey();
-  const exDate = document.getElementById('exDate'); if (exDate && !exDate.value) exDate.value = todayKey();
-  const pepDoseDate = document.getElementById('pepDoseDate'); if (pepDoseDate && !pepDoseDate.value) pepDoseDate.value = todayKey();
-
-  wirePeptideForm();
-  wireExerciseForm();
-  wireDietForm();
-
-  populatePeptideSelect();
-  renderLibrary();
-  showView('dashboard');
+  initSchedule();
 }
 
 function showView(view) {
@@ -2146,5 +2134,566 @@ function renderCalendar() {
     });
     container.appendChild(g);
   }
+}
+
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   HealthTracker Dev â€” unified recurring schedule (v2)
+   Replaces per-type dated entries with a single recurring model
+   shared across Diet / Peptides / Exercise, a weekly grid view,
+   a Calendar week view with type toggles, and a Dashboard "Today".
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const KIND_LABEL = { diet: 'Diet', peptide: 'Peptide', exercise: 'Exercise' };
+const KIND_COLOR = { diet: '#ff9d5c', peptide: '#f2186b', exercise: '#22d3ee' };
+
+function loadSchedule() { return dbCache.schedule || (dbCache.schedule = []); }
+function saveSchedule(l) { dbCache.schedule = l; queueDbWrite(); }
+
+function dkeyFromInput(v) { return v; } // schedule stores dates as YYYY-MM-DD keys
+function fmtKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function keyToDateObj(key) { const p = String(key).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2] || 1); }
+
+function addDays(d, n) { const c = new Date(d); c.setDate(c.getDate() + n); return c; }
+function addMonths(d, n) { const c = new Date(d); c.setMonth(c.getMonth() + n); return c; }
+function addYears(d, n) { const c = new Date(d); c.setFullYear(c.getFullYear() + n); return c; }
+
+function weekStart(d) { const c = new Date(d); c.setDate(c.getDate() - c.getDay()); c.setHours(0, 0, 0, 0); return c; }
+function weekEnd(d) { const s = weekStart(d); const e = addDays(s, 6); e.setHours(23, 59, 59, 999); return e; }
+function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function sameKey(a, b) { return fmtKey(a) === fmtKey(b); }
+
+// Returns true if a candidate date passes the item's "On these days" filter.
+function dayAllowed(rule, d) {
+  const on = rule.onDays || [];
+  if (on.length) return on.indexOf(d.getDay()) !== -1;
+  return true;
+}
+
+// Shift a candidate date forward to its next allowed occurrence for the rule.
+function nextOccurrence(rule, d) {
+  if (!dayAllowed(rule, d)) return null;
+  if (rule.freq === 'once') return d;
+  if (rule.freq === 'daily') return d;
+  if (rule.freq === 'weekly') {
+    if (rule.onDays && rule.onDays.length) return d;
+    return addDays(d, 7 * (rule.interval || 1));
+  }
+  if (rule.freq === 'monthly') return addMonths(d, rule.interval || 1);
+  if (rule.freq === 'yearly') return addYears(d, rule.interval || 1);
+  return null;
+}
+
+// Expand occurrences into [startDay, endDay]. Always returns at least the start
+// day so one-time items render. `cap` guards runaway expansions.
+function occurrencesOf(item, startDay, endDay) {
+  const rule = item.r || {};
+  const end = rule.end || {};
+  const out = [];
+  const start = keyToDateObj(item.date);
+  const horizon = new Date(Math.max(
+    keyToDateObj(fmtKey(endDay)).getTime(),
+    end.date ? keyToDateObj(end.date).getTime() : 0
+  ));
+  const dayMs = 86400000;
+  // estimate iteration upper bound (in days) to guarantee we pass the horizon
+  // for "never" rules without a hard end.
+  let iterDays;
+  if (end.type === 'never') {
+    iterDays = Math.max((horizon.getTime() - start.getTime()) / dayMs + (rule.interval || 1) * 730, 3660);
+  } else {
+    iterDays = end.type === 'after'
+      ? (end.count || 1) * (rule.interval || 1) * (rule.freq === 'daily' ? 1 : rule.freq === 'weekly' ? 7 : rule.freq === 'monthly' ? 31 : 366)
+      : (end.date ? (keyToDateObj(end.date).getTime() - start.getTime()) / dayMs + 5 : 3660);
+  }
+  iterDays = Math.min(Math.max(iterDays, 1), 40000);
+
+  if (rule.freq === 'once') {
+    if (sameDay(start, startDay) || (start >= startDay && start <= endDay)) out.push(start);
+    return out;
+  }
+
+  let occ = 0;
+  const maxOcc = end.type === 'after' ? (end.count || 1) : 100000;
+  let cur = new Date(start);
+  const seen = {};
+  let guard = 0;
+  while (guard < 400000 && occ < maxOcc) {
+    guard += 1;
+    if (cur > horizon && end.type !== 'after' && end.type !== 'never') break;
+    if (cur > horizon && end.type === 'never' && iterDays < 1) break;
+    const key = fmtKey(cur);
+    if (!seen[key] && dayAllowed(rule, cur)) {
+      seen[key] = true;
+      occ += 1;
+      if (cur >= startDay && cur <= endDay) out.push(cur);
+      if (end.type === 'after' && occ >= maxOcc) break;
+    }
+    const nx = nextOccurrence(rule, cur);
+    if (!nx) break;
+    if (fmtKey(nx) === key) { cur = addDays(cur, 1); continue; } // safety: never loop on same key
+    cur = nx;
+    iterDays -= rule.freq === 'daily' ? rule.interval : rule.freq === 'weekly' ? 7 * rule.interval : rule.freq === 'monthly' ? 31 * rule.interval : rule.freq === 'yearly' ? 366 * rule.interval : 1;
+    if (iterDays <= 0 && end.type === 'never') break;
+  }
+  return out;
+}
+
+// Group schedule items by date key for a week.
+function scheduleForWeek(rangeStart, rangeEnd, filterKind) {
+  const items = loadSchedule();
+  const byDay = {};
+  for (let i = 0; i < 7; i += 1) {
+    const d = addDays(rangeStart, i);
+    byDay[fmtKey(d)] = [];
+  }
+  items.forEach((item) => {
+    const kind = item.kind || 'diet';
+    if (filterKind && kind !== filterKind) return;
+    const occs = occurrencesOf(item, rangeStart, rangeEnd);
+    occs.forEach((d) => {
+      const k = fmtKey(d);
+      if (byDay[k]) byDay[k].push(item);
+    });
+  });
+  return byDay;
+}
+
+function scheduleItemSub(item) {
+  if (item.kind === 'diet') {
+    const det = item.meta && item.meta.items && item.meta.items.length ? (item.meta.items[0].text) : (item.notes || '');
+    return '<span class="ci-main"><b>' + escHtml(item.title) + '</b><span>' + escHtml(det || '') + ' Â· ' + escHtml((item.meta && item.meta.meal) || '') + '</span></span>';
+  }
+  if (item.kind === 'exercise') {
+    const m = item.meta || {};
+    const det = ((m.sets || '') + ' sets Ã— ' + (m.reps || '') + ' reps').replace(' Ã—  reps', '');
+    return '<span class="ci-main"><b>' + escHtml(item.title) + '</b><span>' + escHtml(m.activity || '') + (det ? ' Â· ' + escHtml(det) : '') + '</span></span>';
+  }
+  if (item.kind === 'peptide') {
+    const m = item.meta || {};
+    const det = [(m.dose || ''), (m.note || '')].filter(Boolean).join(' Â· ');
+    const meta = getPeptideMeta(m.name || item.title);
+    return '<span class="ci-main"><b>' + escHtml(item.title) + '</b><span>' + escHtml(det) + '</span></span>' + '<span class="ci-meta" style="color:' + (meta.color || '#f2186b') + '">' + escHtml(m.name || '') + '</span>';
+  }
+  return '<span class="ci-main"><b>' + escHtml(item.title) + '</b></span>';
+}
+
+function renderWeekGrid(gridEl, filterKind, startDay) {
+  if (!gridEl) return;
+  const rangeStart = weekStart(startDay);
+  const rangeEnd = weekEnd(startDay);
+  const byDay = scheduleForWeek(rangeStart, rangeEnd, filterKind);
+  const today = new Date();
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 7; i += 1) {
+    const d = addDays(rangeStart, i);
+    const k = fmtKey(d);
+    const key = new Date(d);
+    const isToday = sameDay(d, today);
+    const col = document.createElement('div');
+    col.className = 'wk-col' + (isToday ? ' today' : '');
+    col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[key.getDay()] + '</span><span class="wk-date">' + String(key.getDate()) + '</span></div><div class="wk-body"></div>';
+    const body = col.querySelector('.wk-body');
+    const items = byDay[k] || [];
+    if (!items.length) body.innerHTML = '<span class="wk-empty">â€”</span>';
+    else items.forEach((item) => {
+      const cell = document.createElement('div');
+      cell.className = 'wk-item kind-' + (item.kind || 'diet');
+      cell.innerHTML = scheduleItemSub(item) + '<button type="button" class="wk-del" data-id="' + escHtml(item.id) + '" aria-label="Remove">Ã—</button>';
+      cell.querySelector('.wk-del').addEventListener('click', () => deleteScheduleItem(item.id));
+      body.appendChild(cell);
+    });
+    frag.appendChild(col);
+  }
+  gridEl.innerHTML = '';
+  gridEl.appendChild(frag);
+}
+
+function deleteScheduleItem(id) {
+  if (!confirm('Remove this scheduled item?')) return;
+  saveSchedule(loadSchedule().filter((it) => it.id !== id));
+  syncAllWeeks();
+}
+
+function renderCalendarWeek() {
+  const picker = document.getElementById('calDatePicker');
+  if (picker && !picker.value) picker.value = weekCursorKey;
+  const label = document.getElementById('calDateLabel');
+  if (label) {
+    const s = weekStart(keyToDateObj(weekCursorKey));
+    const e = addDays(s, 6);
+    label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e);
+  }
+  const grid = document.getElementById('calWeekGrid');
+  if (!grid) return;
+  const cfg = {
+    diet: !!document.getElementById('calToggleDiet').checked,
+    peptide: !!document.getElementById('calTogglePeptide').checked,
+    exercise: !!document.getElementById('calToggleExercise').checked
+  };
+  const measOn = document.getElementById('calToggleMeas') ? document.getElementById('calToggleMeas').checked : false;
+  const rangeStart = weekStart(keyToDateObj(weekCursorKey));
+  const rangeEnd = weekEnd(rangeStart);
+  const byDay = scheduleForWeek(rangeStart, rangeEnd, null);
+  // measurements per day
+  const meas = measurementEntriesForWeek(rangeStart, rangeEnd);
+  const today = new Date();
+  grid.innerHTML = '';
+  for (let i = 0; i < 7; i += 1) {
+    const d = addDays(rangeStart, i);
+    const k = fmtKey(d);
+    const isToday = sameDay(d, today);
+    const col = document.createElement('div');
+    col.className = 'wk-col' + (isToday ? ' today' : '');
+    col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[d.getDay()] + '</span><span class="wk-date">' + String(d.getDate()) + (d.getMonth() !== rangeStart.getMonth() ? ' <small>' + (d.getMonth() + 1) + '/' + d.getFullYear() + '</small>' : '') + '</span></div><div class="wk-body"></div>';
+    const body = col.querySelector('.wk-body');
+    let count = 0;
+    (byDay[k] || []).forEach((item) => {
+      const kind = item.kind || 'diet';
+      if (!cfg[kind]) return;
+      count += 1;
+      const cell = document.createElement('div');
+      cell.className = 'wk-item kind-' + kind;
+      cell.innerHTML = scheduleItemSub(item);
+      body.appendChild(cell);
+    });
+    if (measOn && meas[k] && meas[k].length) {
+      count += 1;
+      const cell = document.createElement('div');
+      cell.className = 'wk-item kind-meas';
+      cell.innerHTML = '<span class="ci-main"><b>Measurement</b><span>' + meas[k].length + ' log' + (meas[k].length > 1 ? 's' : '') + '</span></span>';
+      body.appendChild(cell);
+    }
+    if (!count) body.innerHTML = '<span class="wk-empty">â€”</span>';
+    grid.appendChild(col);
+  }
+}
+
+function measurementEntriesForWeek(rs, re) {
+  const out = {};
+  const entries = normalizeEntries(loadEntries());
+  entries.forEach((en) => {
+    if (en.date >= rs && en.date <= re) {
+      const k = fmtKey(en.date);
+      (out[k] = out[k] || []).push(en);
+    }
+  });
+  return out;
+}
+
+function renderDashboardToday() {
+  const el = document.getElementById('todaySchedule');
+  if (!el) return;
+  const today = new Date();
+  const tKey = fmtKey(today);
+  const byDay = scheduleForWeek(today, today, null);
+  const items = byDay[tKey] || [];
+  if (!items.length) { el.innerHTML = '<p class="ts-empty">Nothing scheduled for today. Head to the Diet, Peptides or Exercise pages to plan your day.</p>'; return; }
+  el.innerHTML = '';
+  items.forEach((item) => {
+    const cell = document.createElement('div');
+    cell.className = 'ts-item kind-' + (item.kind || 'diet');
+    cell.innerHTML = '<span class="ts-chip"></span>' + scheduleItemSub(item);
+    el.appendChild(cell);
+  });
+}
+
+function syncAllWeeks() {
+  if (document.getElementById('calWeekGrid') && !document.getElementById('view-calendar').classList.contains('hidden')) renderCalendarWeek();
+  if (document.getElementById('dietWeekGrid') && !document.getElementById('view-diet').classList.contains('hidden')) renderScheduleWeek('diet');
+  if (document.getElementById('pepWeekGrid') && !document.getElementById('view-peptides').classList.contains('hidden')) renderScheduleWeek('peptide');
+  if (document.getElementById('exWeekGrid') && !document.getElementById('view-exercise').classList.contains('hidden')) renderScheduleWeek('exercise');
+  renderDashboardToday();
+}
+
+// Week cursors per page
+let weekCursorKey = fmtKey(new Date());
+function pageWeekCursor() {
+  return { diet: weekCursorKey, peptide: weekCursorKey, exercise: weekCursorKey };
+}
+
+function setWeekCursor(newKey) {
+  weekCursorKey = newKey;
+  ['cal', 'diet', 'pep', 'ex'].forEach((p) => {
+    const picker = document.getElementById(p + 'DatePicker');
+    if (picker && !picker.value) picker.value = newKey;
+    if (picker) picker.value = newKey;
+  });
+  ['diet', 'pep', 'ex', 'cal'].forEach((p) => {
+    const label = document.getElementById(p + 'DateLabel');
+    if (label) {
+      const s = weekStart(keyToDateObj(weekCursorKey));
+      const e = addDays(s, 6);
+      label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e);
+    }
+  });
+  syncAllWeeks();
+}
+
+function wireWeekNav(prefix) {
+  const prev = document.getElementById(prefix + 'Prev');
+  const next = document.getElementById(prefix + 'Next');
+  const todayBtn = document.getElementById(prefix + 'Today');
+  const picker = document.getElementById(prefix + 'DatePicker');
+  const label = document.getElementById(prefix + 'DateLabel');
+  if (prev) prev.addEventListener('click', () => setWeekCursor(fmtKey(addDays(keyToDateObj(weekCursorKey), -7))));
+  if (next) next.addEventListener('click', () => setWeekCursor(fmtKey(addDays(keyToDateObj(weekCursorKey), 7))));
+  if (todayBtn) todayBtn.addEventListener('click', () => setWeekCursor(fmtKey(new Date())));
+  if (picker) picker.addEventListener('change', () => { if (picker.value) setWeekCursor(picker.value); });
+  if (label) {
+    const s = weekStart(keyToDateObj(weekCursorKey));
+    const e = addDays(s, 6);
+    label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e);
+  }
+}/* â•â•â•â•â•â•â•â•â•â•â•â• SCHEDULE FORM WIDGET â•â•â•â•â•â•â•â•â•â•â•â• */
+// prefix âˆˆ { 'sched' (diet page), 'schedPep', 'schedEx' }
+function field(prefix, name) { return document.getElementById(prefix + name); }
+
+function populateSchedPeptideSelects() {
+  const profile = loadPeptides();
+  ['schedPepSelect', 'schedPepSelectPep', 'schedPepSelectEx'].forEach((id) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    if (!profile.length) {
+      const o = document.createElement('option'); o.value = ''; o.textContent = 'Add a compound to your protocol first'; sel.appendChild(o);
+    } else {
+      profile.forEach((e) => { const o = document.createElement('option'); o.value = e.name; o.textContent = e.name; sel.appendChild(o); });
+    }
+  });
+}
+
+function readDays(prefix, cls) {
+  const out = [];
+  document.querySelectorAll('.' + (cls || 'schedDay') + (prefix === 'sched' ? '' : (prefix === 'schedPep' ? 'Pep' : 'Ex'))).forEach((cb) => { if (cb.checked) out.push(Number(cb.value)); });
+  return out;
+}
+
+function setDaysChecked(prefix, value) {
+  const cls = 'schedDay' + (prefix === 'schedPep' ? 'Pep' : prefix === 'schedEx' ? 'Ex' : '');
+  document.querySelectorAll('.' + cls).forEach((cb) => { cb.checked = value; });
+}
+
+function wireSchedKind(prefix) {
+  const kind = field(prefix, 'Kind');
+  if (!kind) return;
+  const map = {
+    diet: { main: 'DietFields', key: field(prefix, 'Meal'), star: field(prefix, 'DietItems') },
+    exercise: { main: 'ExerciseFields', key: field(prefix, 'ExActivity'), star: field(prefix, 'ExSets') },
+    peptide: { main: 'PeptideFields', key: field(prefix, 'PepSelect'), star: field(prefix, 'PepDose') }
+  };
+  const fieldsets = ['DietFields', 'ExerciseFields', 'PeptideFields'];
+  // Peptide page default kind is peptide; diet page default diet; exercise page default exercise.
+  const apply = () => {
+    const k = kind.value || 'diet';
+    fieldsets.forEach((n) => {
+      const el = field(prefix, n);
+      if (el) el.classList.toggle('hidden', n !== map[k].main);
+    });
+    const title = field(prefix, 'Title');
+    if (k === 'peptide') {
+      const sel = map[k].key;
+      const meta2 = sel && sel.value ? getPeptideMeta(sel.value) : null;
+      if (title && meta2 && !title.value) title.value = meta2.name;
+      if (sel) sel.addEventListener('change', () => { if (title && !title.value) title.value = getPeptideMeta(sel.value).name; });
+    }
+  };
+  kind.addEventListener('change', apply);
+  apply();
+}
+
+function wireScheduleForm(prefix) {
+  const kindSel = field(prefix, 'Kind');
+  const title = field(prefix, 'Title');
+  const start = field(prefix, 'Start');
+  const addBtn = field(prefix, 'AddBtn');
+  if (!start) return;
+
+  // presets
+  document.querySelectorAll('#' + (prefix === 'sched' ? 'view-diet' : prefix === 'schedPep' ? 'view-peptides' : 'view-exercise') + ' .preset[data-preset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const p = btn.getAttribute('data-preset');
+      const n = field(prefix, 'RepeatN');
+      const unit = field(prefix, 'RepeatUnit');
+      // map preset -> (unit, default interval)
+      const map2 = {
+        once: { unit: 'once' },
+        daily: { unit: 'day', n: 1 },
+        weekly: { unit: 'week', n: 1 },
+        weekdays: { unit: 'week', n: 1, days: [1, 2, 3, 4, 5] },
+        monthly: { unit: 'month', n: 1 }
+      };
+      const c = map2[p] || {};
+      setDaysChecked(prefix, false);
+      if (c.days) c.days.forEach((d) => {
+        document.querySelectorAll('.' + ('schedDay' + (prefix === 'schedPep' ? 'Pep' : prefix === 'schedEx' ? 'Ex' : '')) + '[value="' + d + '"]').forEach((cb) => cb.checked = true);
+      });
+      if (unit) unit.value = c.unit || 'week';
+      if (n) n.value = c.n || 1;
+      if (c.unit === 'once') document.getElementById((prefix === 'sched' ? 'schedEnd' : prefix + 'End')).querySelector('[value="never"]').checked = true;
+    });
+  });
+
+  // start date
+  if (start) {
+    if (!start.value) start.value = fmtKey(new Date());
+    start.addEventListener('change', () => { if (start.value) { weekCursorKey = start.value; syncAllWeeks(); } });
+    // date picker sync label
+    if (field(prefix === 'sched' ? 'Diet' : prefix === 'schedPep' ? 'Pep' : 'Ex', 'DatePicker')) {}
+  }
+
+  // ends radio
+  ['schedEnd', 'schedEndPep', 'schedEndEx'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelectorAll('input[name]').forEach((r) => r.addEventListener('change', () => {}));
+  });
+
+  if (addBtn) addBtn.addEventListener('click', () => addScheduleItem(prefix));
+  wireSchedKind(prefix);
+}
+
+function addScheduleItem(prefix) {
+  const kind = field(prefix, 'Kind') ? field(prefix, 'Kind').value : (prefix === 'schedPep' ? 'peptide' : prefix === 'schedEx' ? 'exercise' : 'diet');
+  const titleEl = field(prefix, 'Title');
+  const startEl = field(prefix, 'Start');
+  const title = titleEl ? titleEl.value.trim() : '';
+  const start = startEl ? startEl.value : '';
+  if (!title) { alert('Please give this a title.'); return; }
+  if (!start) { alert('Please choose a start date.'); return; }
+
+  const unitEl = field(prefix, 'RepeatUnit');
+  const unit = unitEl ? unitEl.value : 'week';
+  const nEl = field(prefix, 'RepeatN');
+  const n = nEl ? Math.max(1, parseInt(nEl.value, 10) || 1) : 1;
+
+  const r = {
+    freq: unit === 'once' ? 'once' : unit,
+    interval: unit === 'once' ? 1 : n,
+    onDays: readDays(prefix, null)
+  };
+
+  const endGroup = field(prefix, 'End');
+  let endDone = false;
+  if (endGroup) {
+    const checked = endGroup.querySelector('input[name]:checked');
+    if (checked) {
+      const v = checked.value;
+      if (v === 'after') {
+        const c = field(prefix, 'EndAfter');
+        r.end = { type: 'after', count: c ? Math.max(1, parseInt(c.value, 10) || 1) : 1 };
+        endDone = true;
+      } else if (v === 'date') {
+        const d = field(prefix, 'EndDate');
+        if (d && d.value) { r.end = { type: 'date', date: d.value }; endDone = true; }
+        else { r.end = { type: 'never' }; endDone = true; }
+      } else {
+        r.end = { type: 'never' }; endDone = true;
+      }
+    }
+  }
+  if (!endDone) r.end = { type: 'never' };
+
+  const meta = {};
+  if (kind === 'diet') {
+    meta.meal = field(prefix, 'Meal') ? field(prefix, 'Meal').value : 'breakfast';
+    const items = field(prefix, 'DietItems') ? field(prefix, 'DietItems').value.trim() : '';
+    meta.items = items ? [ { text: items } ] : [];
+  } else if (kind === 'exercise') {
+    meta.activity = field(prefix, 'ExActivity') ? field(prefix, 'ExActivity').value : 'other';
+    meta.sets = field(prefix, 'ExSets') ? (parseInt(field(prefix, 'ExSets').value, 10) || 0) : 0;
+    meta.reps = field(prefix, 'ExReps') ? (parseInt(field(prefix, 'ExReps').value, 10) || 0) : 0;
+  } else if (kind === 'peptide') {
+    meta.name = field(prefix, 'PepSelect') ? field(prefix, 'PepSelect').value : '';
+    meta.dose = field(prefix, 'PepDose') ? field(prefix, 'PepDose').value.trim() : '';
+    meta.note = field(prefix, 'PepNote') ? field(prefix, 'PepNote').value.trim() : '';
+  }
+
+  const item = {
+    id: kind + '-' + Date.now(),
+    kind,
+    title,
+    date: start,
+    r,
+    meta,
+    createdAt: new Date().toISOString()
+  };
+  loadSchedule().push(item);
+  saveSchedule(loadSchedule());
+  // reset title + kind-specific fields
+  if (titleEl) titleEl.value = '';
+  if (field(prefix, 'DietItems')) field(prefix, 'DietItems').value = '';
+  if (field(prefix, 'ExSets')) field(prefix, 'ExSets').value = '';
+  if (field(prefix, 'ExReps')) field(prefix, 'ExReps').value = '';
+  if (field(prefix, 'PepDose')) field(prefix, 'PepDose').value = '';
+  if (field(prefix, 'PepNote')) field(prefix, 'PepNote').value = '';
+  weekCursorKey = start;
+  syncAllWeeks();
+  alert('Added to schedule.');
+}
+
+// Convenience "log for today" from the exercise library.
+function logLibraryToday(libEntry) {
+  loadSchedule().push({
+    id: 'exercise-' + Date.now(),
+    kind: 'exercise',
+    title: libEntry.name,
+    date: fmtKey(new Date()),
+    r: { freq: 'once', interval: 1, onDays: [], end: { type: 'never' } },
+    meta: { activity: libEntry.activity || 'other', sets: libEntry.sets || 0, reps: libEntry.reps || 0, items: [] },
+    createdAt: new Date().toISOString()
+  });
+  saveSchedule(loadSchedule());
+  syncAllWeeks();
+  alert("Added to today's schedule.");
+}
+
+/* â•â•â•â•â•â•â•â•â•â•â•â• PANEL RENDER + INIT â•â•â•â•â•â•â•â•â•â•â•â• */
+function renderScheduleWeek(kind) {
+  const gridEl = document.getElementById(kind + 'WeekGrid');
+  if (gridEl) renderWeekGrid(gridEl, kind, keyToDateObj(weekCursorKey));
+  const label = document.getElementById(kind + 'DateLabel');
+  if (label) { const s = weekStart(keyToDateObj(weekCursorKey)); const e = addDays(s, 6); label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e); }
+}
+
+// Reworked showView handle â€” overrides the earlier view render calls.
+function showView(view) {
+  activeView = view;
+  document.querySelectorAll('.view-page').forEach((page) => page.classList.toggle('hidden', page.id !== 'view-' + view));
+  document.querySelectorAll('.nav-link').forEach((btn) => btn.classList.toggle('active', btn.dataset.view === view));
+  if (view === 'calendar') renderCalendar();
+  else if (view === 'diet') renderScheduleWeek('diet');
+  else if (view === 'peptides') { renderPeptideProfile(); populateSchedPeptideSelects(); renderScheduleWeek('peptide'); }
+  else if (view === 'exercise') { renderLibrary(); renderScheduleWeek('exercise'); }
+  else if (view === 'dashboard') renderDashboardToday();
+}
+
+// Re-declared calendar render (picks up the redefined showView view id 'calendar').
+function renderCalendar() { renderCalendarWeek(); }
+
+function initSchedule() {
+  // wire week nav
+  ['cal', 'diet', 'pep', 'ex'].forEach(wireWeekNav);
+  // calendar type toggles
+  ['calToggleDiet', 'calTogglePeptide', 'calToggleExercise', 'calToggleMeas'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => { if (activeView === 'calendar' || activeView === 'cal') renderCalendar(); });
+  });
+  // schedule forms
+  wireScheduleForm('sched');      // diet page
+  wireScheduleForm('schedPep');   // peptides page
+  wireScheduleForm('schedEx');    // exercise page
+  populateSchedPeptideSelects();
+  // set week cursors on pickers/labels
+  ['cal', 'diet', 'pep', 'ex'].forEach((p) => {
+    const picker = document.getElementById(p + 'DatePicker');
+    if (picker && !picker.value) picker.value = weekCursorKey;
+    const label = document.getElementById(p + 'DateLabel');
+    if (label) { const s = weekStart(new Date()); const e = addDays(s, 6); label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e); }
+  });
+  syncAllWeeks();
+  showView('dashboard');
 }
 

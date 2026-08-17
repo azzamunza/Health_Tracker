@@ -61,6 +61,14 @@
         <div class="hero-image" aria-hidden="true"></div>
       </section>
 
+      <section class="today-card card">
+        <div class="section-header">
+          <h2>Today's schedule</h2>
+          <p>Everything you've scheduled for today across Diet, Peptides and Exercise.</p>
+        </div>
+        <div id="todaySchedule" class="today-schedule"></div>
+      </section>
+
       <section class="feature-strip">
         <article class="feature">
           <div class="feature-icon">📏</div>
@@ -258,21 +266,23 @@
       <div class="page-head">
         <div>
           <h2>Calendar</h2>
-          <p>Your daily overview — logs, meals, exercises and protocol.</p>
+          <p>Weekly view of everything scheduled across Diet, Peptides and Exercise.</p>
         </div>
       </div>
-      <div class="cal-nav">
+      <div class="week-nav">
         <button type="button" id="calPrev" class="secondary-btn">◀ Prev</button>
-        <div class="cal-date" id="calDateLabel">—</div>
+        <input type="date" id="calDatePicker" class="week-date-has" aria-label="Jump to date" />
+        <button type="button" id="calToday" class="secondary-btn">Today</button>
         <button type="button" id="calNext" class="secondary-btn">Next ▶</button>
       </div>
-      <div class="cal-stats">
-        <div class="cal-stat"><span>Peptides</span><strong id="calPeptideCount">0</strong></div>
-        <div class="cal-stat"><span>Workouts</span><strong id="calWorkoutCount">0</strong></div>
-        <div class="cal-stat"><span>Meals</span><strong id="calMealCount">0</strong></div>
-        <div class="cal-stat"><span>Measurements</span><strong id="calMeasCount">0</strong></div>
+      <div class="week-label" id="calDateLabel">—</div>
+      <div class="week-filters">
+        <label class="wk-toggle"><input type="checkbox" id="calToggleDiet" checked /> Diet</label>
+        <label class="wk-toggle"><input type="checkbox" id="calTogglePeptide" checked /> Peptides</label>
+        <label class="wk-toggle"><input type="checkbox" id="calToggleExercise" checked /> Exercise</label>
+        <label class="wk-toggle"><input type="checkbox" id="calToggleMeas" /> Measurements</label>
       </div>
-      <div id="calendarDay" class="cal-day"></div>
+      <div class="week-grid" id="calWeekGrid"></div>
     </section>
 
     <!-- ── Diet ── -->
@@ -280,21 +290,25 @@
       <div class="page-head">
         <div>
           <h2>Diet</h2>
-          <p>Plan meals for each day — morning, lunch, dinner, snacks and alcohol.</p>
+          <p>Schedule meals — morning, lunch, dinner, snacks and alcohol.</p>
         </div>
       </div>
-      <div class="cal-nav">
-        <button type="button" id="dietPrev" class="secondary-btn">◀ Prev</button>
-        <div class="cal-date" id="dietDateLabel">—</div>
-        <button type="button" id="dietNext" class="secondary-btn">Next ▶</button>
-      </div>
-      <form id="dietForm" class="diet-form">
-        <div class="row">
-          <label>Date
-            <input type="date" id="dietDate" required />
+      <div class="sched-form card">
+        <div class="sched-kind">
+          <label>Item type
+            <select id="schedKind">
+              <option value="diet">Diet meal</option>
+              <option value="peptide">Peptide dose</option>
+              <option value="exercise">Exercise</option>
+            </select>
           </label>
+          <label>Title
+            <input type="text" id="schedTitle" placeholder="e.g. Breakfast — oats &amp; berries" required />
+          </label>
+        </div>
+        <div class="sched-kind-fields" id="schedDietFields">
           <label>Meal type
-            <select id="dietMeal">
+            <select id="schedMeal">
               <option value="breakfast">Breakfast</option>
               <option value="lunch">Lunch</option>
               <option value="dinner">Dinner</option>
@@ -302,89 +316,316 @@
               <option value="alcohol">Alcohol</option>
             </select>
           </label>
-        </div>
-        <div class="row">
-          <label>Item
-            <input type="text" id="dietItem" placeholder="e.g. Oats + berries, grilled chicken salad…" required />
+          <label>Items
+            <input type="text" id="schedDietItems" placeholder="Oats, berries, protein shake…" />
           </label>
         </div>
-        <div class="diet-hint" id="dietAlcoholHint" hidden>Recorded as an alcohol item.</div>
-        <div class="form-actions">
-          <button type="submit" class="primary-btn">Add meal</button>
+        <div class="sched-kind-fields hidden" id="schedExerciseFields">
+          <label>Activity
+            <select id="schedExActivity">
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="mobility">Mobility</option>
+              <option value="core">Core</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Sets <input type="number" id="schedExSets" min="0" placeholder="e.g. 4" /></label>
+          <label>Reps <input type="number" id="schedExReps" min="0" placeholder="e.g. 12" /></label>
         </div>
-      </form>
-      <div class="diet-grid" id="dietGrid"></div>
+        <div class="sched-kind-fields hidden" id="schedPeptideFields">
+          <label>Compound
+            <select id="schedPepSelect"></select>
+          </label>
+          <label>Dose <input type="text" id="schedPepDose" placeholder="e.g. 250 mcg" /></label>
+          <label>Notes <input type="text" id="schedPepNote" placeholder="e.g. on empty stomach" /></label>
+        </div>
+        <div class="sched-row sched-start">
+          <label>Start date <input type="date" id="schedStart" required /></label>
+        </div>
+        <div class="sched-presets">
+          <span>Quick presets</span>
+          <div class="preset-row">
+            <button type="button" class="preset" data-preset="once">Once</button>
+            <button type="button" class="preset" data-preset="daily">Daily</button>
+            <button type="button" class="preset" data-preset="weekly">Weekly</button>
+            <button type="button" class="preset" data-preset="weekdays">Weekdays</button>
+            <button type="button" class="preset" data-preset="monthly">Monthly</button>
+          </div>
+        </div>
+        <div class="sched-row sched-repeat">
+          <label>Repeat every <input type="number" id="schedRepeatN" min="1" value="1" /></label>
+          <label>Unit
+            <select id="schedRepeatUnit">
+              <option value="day">Day/s</option>
+              <option value="week">Week/s</option>
+              <option value="month">Month/s</option>
+              <option value="year">Year/s</option>
+            </select>
+          </label>
+        </div>
+        <div class="sched-days">
+          <span>On these days</span>
+          <div class="days-check">
+            <label><input type="checkbox" class="schedDay" value="1" /> Sun</label>
+            <label><input type="checkbox" class="schedDay" value="2" /> Mon</label>
+            <label><input type="checkbox" class="schedDay" value="3" /> Tue</label>
+            <label><input type="checkbox" class="schedDay" value="4" /> Wed</label>
+            <label><input type="checkbox" class="schedDay" value="5" /> Thu</label>
+            <label><input type="checkbox" class="schedDay" value="6" /> Fri</label>
+            <label><input type="checkbox" class="schedDay" value="0" /> Sat</label>
+          </div>
+        </div>
+        <div class="sched-end">
+          <span>Ends</span>
+          <label class="end-radio"><input type="radio" name="schedEnd" value="never" checked /> Never</label>
+          <label><input type="radio" name="schedEnd" value="after" /> After <input type="number" id="schedEndAfter" min="1" value="10" /> occurrences</label>
+          <label><input type="radio" name="schedEnd" value="date" /> On <input type="date" id="schedEndDate" /></label>
+        </div>
+        <div class="sched-actions">
+          <button type="button" id="schedAddBtn" class="primary-btn">Add</button>
+        </div>
+      </div>
+      <div class="card sched-week-block">
+        <div class="week-head">
+          <div class="week-nav">
+            <button type="button" id="dietPrev" class="secondary-btn">◀ Prev</button>
+            <input type="date" id="dietDatePicker" aria-label="Jump to date" />
+            <button type="button" id="dietToday" class="secondary-btn">Today</button>
+            <button type="button" id="dietNext" class="secondary-btn">Next ▶</button>
+          </div>
+          <div class="week-label" id="dietDateLabel"></div>
+        </div>
+        <div class="week-grid" id="dietWeekGrid"></div>
+      </div>
     </section>
 
-    <!-- ── Peptides ── -->
     <section class="view-page hidden" id="view-peptides">
       <div class="page-head">
         <div>
           <h2>Peptides</h2>
-          <p>Add compounds to your protocol and schedule each dose.</p>
+          <p>Add compounds to your protocol, then schedule doses below.</p>
         </div>
       </div>
-      <div class="pep-layout">
-        <div class="card pep-list-card">
-          <div class="section-header">
-            <h2>My protocol</h2>
-            <p>Select a compound to add it to your profile.</p>
-          </div>
-          <div class="pep-picker">
-            <input type="text" id="pepSearch" placeholder="Search the compound list…" />
-            <select id="pepSelect"></select>
-            <button type="button" id="pepAddBtn" class="primary-btn">Add to protocol</button>
-          </div>
-          <div id="pepProfile" class="pep-profile"></div>
+      <div class="sched-form card">
+        <div class="sched-kind">
+          <label>Item type
+            <select id="schedKindPep" class="sched-kind-sync">
+              <option value="peptide">Peptide dose</option>
+              <option value="diet">Diet meal</option>
+              <option value="exercise">Exercise</option>
+            </select>
+          </label>
+          <label>Title
+            <input type="text" id="schedTitlePep" placeholder="e.g. BPC-157 morning dose" required />
+          </label>
         </div>
-        <div class="card pep-sched-card">
-          <div class="section-header">
-            <h2>Schedule a dose</h2>
-            <p>Pick a date &amp; time, set a dose, mark complete, add notes.</p>
-          </div>
-          <form id="pepForm" class="pep-form">
-            <div class="row">
-              <label>Compound
-                <select id="pepDoseSelect" required></select>
-              </label>
-              <label>Date
-                <input type="date" id="pepDoseDate" required />
-              </label>
-            </div>
-            <div class="row">
-              <label>Time
-                <input type="time" id="pepDoseTime" />
-              </label>
-              <label>Dose
-                <input type="text" id="pepDose" placeholder="e.g. 250 mcg" />
-              </label>
-            </div>
-            <div class="row">
-              <label>Note
-                <input type="text" id="pepNote" placeholder="e.g. take with food / on empty stomach…" />
-              </label>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="primary-btn">Schedule dose</button>
-            </div>
-          </form>
-          <div class="pep-schedule" id="pepSchedule"></div>
+        <div class="sched-kind-fields" id="schedPeptideFieldsPep">
+          <label>Compound
+            <select id="schedPepSelectPep"></select>
+          </label>
+          <label>Dose <input type="text" id="schedPepDosePep" placeholder="e.g. 250 mcg" /></label>
+          <label>Notes <input type="text" id="schedPepNotePep" placeholder="e.g. on empty stomach" /></label>
         </div>
+        <div class="sched-kind-fields hidden" id="schedDietFieldsPep">
+          <label>Meal type
+            <select id="schedMealPep">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+              <option value="alcohol">Alcohol</option>
+            </select>
+          </label>
+          <label>Items <input type="text" id="schedDietItemsPep" placeholder="Oats, berries…" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedExerciseFieldsPep">
+          <label>Activity
+            <select id="schedExActivityPep">
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="mobility">Mobility</option>
+              <option value="core">Core</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Sets <input type="number" id="schedExSetsPep" min="0" placeholder="4" /></label>
+          <label>Reps <input type="number" id="schedExRepsPep" min="0" placeholder="12" /></label>
+        </div>
+        <div class="sched-row sched-start">
+          <label>Start date <input type="date" id="schedStartPep" required /></label>
+        </div>
+        <div class="sched-presets">
+          <span>Quick presets</span>
+          <div class="preset-row">
+            <button type="button" class="preset" data-preset="once">Once</button>
+            <button type="button" class="preset" data-preset="daily">Daily</button>
+            <button type="button" class="preset" data-preset="weekly">Weekly</button>
+            <button type="button" class="preset" data-preset="weekdays">Weekdays</button>
+            <button type="button" class="preset" data-preset="monthly">Monthly</button>
+          </div>
+        </div>
+        <div class="sched-row sched-repeat">
+          <label>Repeat every <input type="number" id="schedRepeatNPep" min="1" value="1" /></label>
+          <label>Unit
+            <select id="schedRepeatUnitPep">
+              <option value="day">Day/s</option>
+              <option value="week">Week/s</option>
+              <option value="month">Month/s</option>
+              <option value="year">Year/s</option>
+            </select>
+          </label>
+        </div>
+        <div class="sched-days">
+          <span>On these days</span>
+          <div class="days-check">
+            <label><input type="checkbox" class="schedDayPep" value="1" /> Sun</label>
+            <label><input type="checkbox" class="schedDayPep" value="2" /> Mon</label>
+            <label><input type="checkbox" class="schedDayPep" value="3" /> Tue</label>
+            <label><input type="checkbox" class="schedDayPep" value="4" /> Wed</label>
+            <label><input type="checkbox" class="schedDayPep" value="5" /> Thu</label>
+            <label><input type="checkbox" class="schedDayPep" value="6" /> Fri</label>
+            <label><input type="checkbox" class="schedDayPep" value="0" /> Sat</label>
+          </div>
+        </div>
+        <div class="sched-end">
+          <span>Ends</span>
+          <label class="end-radio"><input type="radio" name="schedEndPep" value="never" checked /> Never</label>
+          <label><input type="radio" name="schedEndPep" value="after" /> After <input type="number" id="schedEndAfterPep" min="1" value="10" /> occurrences</label>
+          <label><input type="radio" name="schedEndPep" value="date" /> On <input type="date" id="schedEndDatePep" /></label>
+        </div>
+        <div class="sched-actions">
+          <button type="button" id="schedAddBtnPep" class="primary-btn">Add</button>
+        </div>
+      </div>
+      <div class="card pep-list-card">
+        <div class="section-header">
+          <h2>My protocol</h2>
+          <p>Save compounds you use so scheduling is quick.</p>
+        </div>
+        <div class="pep-picker">
+          <input type="text" id="pepSearch" placeholder="Search the compound list…" />
+          <select id="pepSelect"></select>
+          <button type="button" id="pepAddBtn" class="primary-btn">Add to protocol</button>
+        </div>
+        <div id="pepProfile" class="pep-profile"></div>
+      </div>
+      <div class="card sched-week-block">
+        <div class="week-head">
+          <div class="week-nav">
+            <button type="button" id="pepPrev" class="secondary-btn">◀ Prev</button>
+            <input type="date" id="pepDatePicker" aria-label="Jump to date" />
+            <button type="button" id="pepToday" class="secondary-btn">Today</button>
+            <button type="button" id="pepNext" class="secondary-btn">Next ▶</button>
+          </div>
+          <div class="week-label" id="pepDateLabel"></div>
+        </div>
+        <div class="week-grid" id="pepWeekGrid"></div>
       </div>
     </section>
 
-    <!-- ── Exercise ── -->
     <section class="view-page hidden" id="view-exercise">
       <div class="page-head">
         <div>
           <h2>Exercise</h2>
-          <p>Log home workouts — dumbbells or bodyweight — and track sets &amp; reps.</p>
+          <p>Schedule workouts — dumbbells or bodyweight — with sets and reps.</p>
+        </div>
+      </div>
+      <div class="sched-form card">
+        <div class="sched-kind">
+          <label>Item type
+            <select id="schedKindEx" class="sched-kind-sync">
+              <option value="exercise">Exercise</option>
+              <option value="diet">Diet meal</option>
+              <option value="peptide">Peptide dose</option>
+            </select>
+          </label>
+          <label>Title
+            <input type="text" id="schedTitleEx" placeholder="e.g. Morning workout" required />
+          </label>
+        </div>
+        <div class="sched-kind-fields" id="schedExerciseFieldsEx">
+          <label>Activity
+            <select id="schedExActivityEx">
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="mobility">Mobility</option>
+              <option value="core">Core</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Sets <input type="number" id="schedExSetsEx" min="0" placeholder="4" /></label>
+          <label>Reps <input type="number" id="schedExRepsEx" min="0" placeholder="12" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedDietFieldsEx">
+          <label>Meal type
+            <select id="schedMealEx">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+              <option value="alcohol">Alcohol</option>
+            </select>
+          </label>
+          <label>Items <input type="text" id="schedDietItemsEx" placeholder="Oats, berries…" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedPeptideFieldsEx">
+          <label>Compound
+            <select id="schedPepSelectEx"></select>
+          </label>
+          <label>Dose <input type="text" id="schedPepDoseEx" placeholder="250 mcg" /></label>
+          <label>Notes <input type="text" id="schedPepNoteEx" placeholder="on empty stomach" /></label>
+        </div>
+        <div class="sched-row sched-start">
+          <label>Start date <input type="date" id="schedStartEx" required /></label>
+        </div>
+        <div class="sched-presets">
+          <span>Quick presets</span>
+          <div class="preset-row">
+            <button type="button" class="preset" data-preset="once">Once</button>
+            <button type="button" class="preset" data-preset="daily">Daily</button>
+            <button type="button" class="preset" data-preset="weekly">Weekly</button>
+            <button type="button" class="preset" data-preset="weekdays">Weekdays</button>
+            <button type="button" class="preset" data-preset="monthly">Monthly</button>
+          </div>
+        </div>
+        <div class="sched-row sched-repeat">
+          <label>Repeat every <input type="number" id="schedRepeatNEx" min="1" value="1" /></label>
+          <label>Unit
+            <select id="schedRepeatUnitEx">
+              <option value="day">Day/s</option>
+              <option value="week">Week/s</option>
+              <option value="month">Month/s</option>
+              <option value="year">Year/s</option>
+            </select>
+          </label>
+        </div>
+        <div class="sched-days">
+          <span>On these days</span>
+          <div class="days-check">
+            <label><input type="checkbox" class="schedDayEx" value="1" /> Sun</label>
+            <label><input type="checkbox" class="schedDayEx" value="2" /> Mon</label>
+            <label><input type="checkbox" class="schedDayEx" value="3" /> Tue</label>
+            <label><input type="checkbox" class="schedDayEx" value="4" /> Wed</label>
+            <label><input type="checkbox" class="schedDayEx" value="5" /> Thu</label>
+            <label><input type="checkbox" class="schedDayEx" value="6" /> Fri</label>
+            <label><input type="checkbox" class="schedDayEx" value="0" /> Sat</label>
+          </div>
+        </div>
+        <div class="sched-end">
+          <span>Ends</span>
+          <label class="end-radio"><input type="radio" name="schedEndEx" value="never" checked /> Never</label>
+          <label><input type="radio" name="schedEndEx" value="after" /> After <input type="number" id="schedEndAfterEx" min="1" value="10" /> occurrences</label>
+          <label><input type="radio" name="schedEndEx" value="date" /> On <input type="date" id="schedEndDateEx" /></label>
+        </div>
+        <div class="sched-actions">
+          <button type="button" id="schedAddBtnEx" class="primary-btn">Add</button>
         </div>
       </div>
       <div class="card ex-library-card">
         <div class="section-header">
           <h2>Exercise library</h2>
-          <p>Add curated home exercises to your day, or log your own.</p>
+          <p>Quick-add curated home exercises to today's schedule.</p>
         </div>
         <div class="ex-actions">
           <input type="text" id="exSearch" placeholder="Search the library…" />
@@ -392,47 +633,17 @@
         </div>
         <div id="exLibrary" class="ex-library"></div>
       </div>
-      <div class="card ex-log-card">
-        <div class="section-header">
-          <h2>Log a workout</h2>
-          <p>Add an exercise with activity, sets and reps.</p>
+      <div class="card sched-week-block">
+        <div class="week-head">
+          <div class="week-nav">
+            <button type="button" id="exPrev" class="secondary-btn">◀ Prev</button>
+            <input type="date" id="exDatePicker" aria-label="Jump to date" />
+            <button type="button" id="exToday" class="secondary-btn">Today</button>
+            <button type="button" id="exNext" class="secondary-btn">Next ▶</button>
+          </div>
+          <div class="week-label" id="exDateLabel"></div>
         </div>
-        <form id="exForm" class="ex-form">
-          <div class="row">
-            <label>Date
-              <input type="date" id="exDate" required />
-            </label>
-            <label>Activity type
-              <select id="exActivity">
-                <option value="strength">Strength</option>
-                <option value="cardio">Cardio</option>
-                <option value="mobility">Mobility</option>
-                <option value="core">Core</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-          </div>
-          <div class="row">
-            <label>Exercise
-              <input type="text" id="exName" placeholder="e.g. Goblet squat" required />
-            </label>
-          </div>
-          <div class="row ex-sets-row">
-            <label>Sets
-              <input type="number" id="exSets" min="0" step="1" placeholder="e.g. 4" />
-            </label>
-            <label>Reps
-              <input type="number" id="exReps" min="0" step="1" placeholder="e.g. 12" />
-            </label>
-            <label class="ex-share">
-              <input type="checkbox" id="exShared" /> Make available to everyone
-            </label>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="primary-btn">Log exercise</button>
-          </div>
-        </form>
-        <div id="exLog" class="ex-log"></div>
+        <div class="week-grid" id="exWeekGrid"></div>
       </div>
     </section>
   </div>

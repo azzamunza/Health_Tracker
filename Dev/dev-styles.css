@@ -111,3 +111,77 @@
 .ex-empty{color:var(--muted);font-size:14px;text-align:center;padding:20px}
 @media(max-width:900px){.pep-layout{grid-template-columns:1fr}.cal-stats{grid-template-columns:1fr 1fr}.ex-actions{grid-template-columns:1fr}}
 @media(max-width:560px){.app-nav{gap:6px}.app-nav .nav-link{flex:1 1 auto;padding:10px 8px;font-size:12px;text-align:center}.cal-nav{gap:8px}.cal-nav .secondary-btn{min-width:0;padding:10px 12px}.diet-form .row,.pep-form .row:first-of-type,.ex-form .row:first-of-type{grid-template-columns:1fr}.pep-picker{grid-template-columns:1fr}.ex-sets-row{grid-template-columns:1fr 1fr!important}.ex-sets-row .ex-share{grid-column:1/-1}}
+/* ══ Scheduler v2 ══ */
+.sched-form{padding:0 22px 22px;margin-bottom:16px}
+.sched-form .sched-kind{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px}
+.sched-form label{display:flex;flex-direction:column;gap:6px;font:600 12px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:0}
+.sched-form input,.sched-form select{width:100%;border-radius:2px!important;border:1px solid var(--line)!important;background:#0a0e13!important;color:#f5f6f8!important;padding:11px 12px!important}
+.sched-form input:focus,.sched-form select:focus{border-color:var(--pink)!important;box-shadow:0 0 0 2px rgba(242,24,107,.15)}
+.sched-kind-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.sched-kind-fields.hidden{display:none}
+.sched-row.sched-start{display:grid;grid-template-columns:1fr;gap:8px;margin:12px 0}
+.sched-row.sched-repeat{display:flex;gap:12px;flex-wrap:wrap;margin:4px 0}
+.sched-row.sched-repeat label{flex:1;min-width:90px}
+.sched-presets{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.sched-presets>span{font:600 12px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.preset-row{display:flex;gap:6px;flex-wrap:wrap}
+.sched-presets .preset{background:#0d1218;border:1px solid var(--line);color:#cfd4d9;font:700 12px var(--font-display);letter-spacing:.5px;text-transform:uppercase;border-radius:3px;padding:8px 14px}
+.sched-presets .preset.active,.sched-presets .preset:active{background:linear-gradient(135deg,#fc478c,#c30c53);border-color:#f1397d;color:#fff}
+.sched-days{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.sched-days>span{font:600 12px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.days-check{display:flex;gap:8px;flex-wrap:wrap}
+.days-check label{flex-direction:row;align-items:center;gap:5px;font:600 11px var(--font-display);letter-spacing:.3px;color:#dfe3e8;text-transform:uppercase}
+.days-check input{width:auto;accent-color:var(--pink)}
+.sched-end{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:8px 0 14px}
+.sched-end>span{font:600 12px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.sched-end label{flex-direction:row;align-items:center;gap:6px;font:600 12px var(--font-display);letter-spacing:.3px;color:#dfe3e8;text-transform:none}
+.sched-end label.end-radio{color:var(--muted)}
+.sched-end input[type=radio]{width:auto;accent-color:var(--pink)}
+.sched-end input[type=date],.sched-end input[type=number]{width:120px}
+.sched-actions{margin-top:4px}
+.week-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line)}
+.week-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.week-nav .secondary-btn{min-width:auto;padding:9px 14px}
+.week-nav input[type=date]{border-radius:2px!important;border:1px solid var(--line)!important;background:#0a0e13!important;color:#f5f6f8!important;padding:8px 10px!important;font:700 13px var(--font-display)}
+.week-label{font:700 15px var(--font-display);letter-spacing:.4px;text-transform:uppercase;color:var(--pink-light)}
+.week-filters{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line)}
+.wk-toggle{flex-direction:row!important;align-items:center;gap:6px;font:700 12px var(--font-display)!important;letter-spacing:.4px;text-transform:uppercase!important;color:#e2e6eb}
+.wk-toggle input{width:auto;accent-color:var(--pink)}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:rgba(205,215,225,.08);border-radius:3px;overflow:hidden}
+.wk-col{background:#0a0e13;min-height:120px;display:flex;flex-direction:column}
+.wk-col.today{background:linear-gradient(180deg,rgba(242,24,107,.14),#0a0e13 55%)}
+.wk-head{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-bottom:1px solid rgba(205,215,225,.12)}
+.wk-dotw{font:700 12px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#e6eaee}
+.wk-col.today .wk-dotw{color:var(--pink-light)}
+.wk-date{font:700 20px var(--font-display);color:#9aa3ae}
+.wk-date small{font:500 10px var(--font-mono);color:#6b7480}
+.wk-body{flex:1;padding:6px;display:flex;flex-direction:column;gap:6px}
+.wk-item{border:1px solid var(--line);border-left:3px solid #444;border-radius:3px;background:#0c1117;padding:7px 8px;display:flex;align-items:flex-start;gap:6px;position:relative}
+.wk-item.kind-diet{border-left-color:#ff9d5c}
+.wk-item.kind-peptide{border-left-color:#f2186b}
+.wk-item.kind-exercise{border-left-color:#22d3ee}
+.wk-item.kind-meas{border-left-color:#a78bfa}
+.wk-item .ci-main{flex:1;min-width:0;color:#dfe3e8}
+.wk-item .ci-main b{display:block;font:700 12px var(--font-display);letter-spacing:.3px;text-transform:uppercase;color:#eef1f4;line-height:1.15}
+.wk-item .ci-main span{display:block;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.3}
+.wk-item .ci-meta{font:500 10px var(--font-mono);color:#b8bfc8}
+.wk-empty{color:#5b646f;font-size:13px;text-align:center;padding:12px 4px}
+.wk-del{background:none;border:0;color:#7c8694;font-size:14px;cursor:pointer;padding:0 2px;line-height:1;flex:0 0 auto}
+.wk-del:hover{color:#fb5572}
+/* Dashboard today */
+.today-card{margin:0 0 16px}
+.today-card .section-header{border:0;background:transparent;padding:22px 26px 14px}
+.today-schedule{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;padding:0 26px 26px}
+.ts-item{border:1px solid var(--line);border-left:3px solid var(--pink);border-radius:3px;background:#0c1117;padding:12px 13px;display:flex;align-items:flex-start;gap:9px}
+.ts-item.kind-diet{border-left-color:#ff9d5c}
+.ts-item.kind-peptide{border-left-color:#f2186b}
+.ts-item.kind-exercise{border-left-color:#22d3ee}
+.ts-chip{width:9px;height:9px;border-radius:50%;background:var(--pink);flex:0 0 9px;margin-top:5px}
+.ts-item.kind-diet .ts-chip{background:#ff9d5c}
+.ts-item.kind-peptide .ts-chip{background:#f2186b}
+.ts-item.kind-exercise .ts-chip{background:#22d3ee}
+.ts-item .ci-main b{display:block;font:700 13px var(--font-display);letter-spacing:.3px;text-transform:uppercase;color:#eef1f4}
+.ts-item .ci-main span{font-size:12px;color:var(--muted);display:block;margin-top:2px}
+.ts-empty{color:var(--muted);font-size:14px;padding:4px 26px 24px}
+@media(max-width:1000px){.week-grid{grid-template-columns:repeat(3,1fr)}.wk-col:nth-child(n+4){margin-top:0}}
+@media(max-width:640px){.week-grid{grid-template-columns:repeat(2,1fr)}.sched-form .sched-kind{grid-template-columns:1fr}.sched-kind-fields{grid-template-columns:1fr}.week-head{flex-direction:column;align-items:stretch}.week-label{text-align:center}}

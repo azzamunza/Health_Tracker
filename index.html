@@ -9,7 +9,11 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="images/AppIcon.png" />
   <title>HealthTracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="dev-styles.css" />
 </head>
 <body>
   <div class="loading-overlay" id="loadingOverlay" aria-hidden="true"></div>
@@ -38,203 +42,616 @@
       </div>
     </header>
 
-    <section class="hero-card">
-      <div class="hero-copy">
-        <span class="hero-tag">Your body. Your data. Your edge.</span>
-        <p>Track every measurement, see real progress, and stay focused on your transformation.</p>
-      </div>
-      <div class="hero-image" aria-hidden="true"></div>
-    </section>
+    <nav class="app-nav" id="appNav" aria-label="Main navigation">
+      <button type="button" class="nav-link" data-view="dashboard">Dashboard</button>
+      <button type="button" class="nav-link" data-view="calendar">Calendar</button>
+      <button type="button" class="nav-link" data-view="diet">Diet</button>
+      <button type="button" class="nav-link" data-view="peptides">Peptides</button>
+      <button type="button" class="nav-link" data-view="exercise">Exercise</button>
+    </nav>
 
-    <section class="feature-strip">
-      <article class="feature">
-        <div class="feature-icon">📏</div>
-        <h3>Custom measurements</h3>
-        <p>Track the body metrics that matter most to you.</p>
-      </article>
-      <article class="feature">
-        <div class="feature-icon">📈</div>
-        <h3>Track progress</h3>
-        <p>Review your history and compare your latest entries.</p>
-      </article>
-      <article class="feature">
-        <div class="feature-icon">🎯</div>
-        <h3>Stay focused</h3>
-        <p>Save notes, define goals, and keep momentum in one place.</p>
-      </article>
-    </section>
-
-    <section class="summary-cards">
-      <article class="card summary-top-card">
-        <div class="summary-top-grid">
-          <div class="summary-top-item">
-            <h2>Latest Entry</h2>
-            <p id="latestDate">No entries yet</p>
-          </div>
-          <div class="summary-top-item">
-            <h2>Total Logs</h2>
-            <p id="totalLogs">0</p>
-          </div>
+    <!-- ── Dashboard ── -->
+    <section class="view-page" id="view-dashboard">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <p class="hero-kicker">Measure. Track. Transform.</p>
+          <span class="hero-tag">Your body.<br><em>Your data.</em><br>Your edge.</span>
+          <p>Track every measurement, schedule your protocol, and stay focused on your transformation.</p>
         </div>
-      </article>
-      <article class="card profile-goals-panel">
-        <div class="profile-goals-header">
-          <div>
-            <h2>Profile &amp; Goals</h2>
-            <p>Your details, targets and progress in one place.</p>
-          </div>
-          <button type="button" id="profileEditBtn" class="icon-btn" title="Edit profile and goals" aria-label="Edit profile and goals">⚙</button>
-        </div>
+        <div class="hero-image" aria-hidden="true"></div>
+      </section>
 
-        <div class="profile-goals-grid" id="profileGoalsView">
-          <div id="profileView" class="profile-view">
-            <p class="profile-empty">Add your profile details to personalise your dashboard.</p>
-          </div>
-          <div class="goals-panel">
-            <h3 class="goals-heading">Goals</h3>
-            <div id="goalsList" class="goals-list"></div>
-          </div>
+      <section class="today-card card">
+        <div class="section-header">
+          <h2>Today's schedule</h2>
+          <p>Everything you've scheduled for today across Diet, Peptides and Exercise.</p>
         </div>
+        <div id="todaySchedule" class="today-schedule"></div>
+      </section>
 
-        <div class="profile-edit-view hidden" id="profileEditView">
-          <h3 class="edit-heading">Edit profile &amp; goals</h3>
-          <div class="profile-form" id="profileForm">
-            <div class="profile-form-grid">
-              <label>Name <input type="text" id="profileName" placeholder="Your name" /></label>
-              <label>Age <input type="number" id="profileAge" placeholder="Age" min="0" /></label>
-              <label>Sex <select id="profileSex"><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select></label>
-              <label>Height (cm) <input type="number" id="profileHeight" placeholder="Height" min="0" /></label>
-              <label>Weight (kg) <input type="number" id="profileWeight" placeholder="Weight" min="0" /></label>
-              <label>Avg Sleep (hrs) <input type="number" id="profileSleep" placeholder="Hours" min="0" step="0.5" /></label>
+      <section class="feature-strip">
+        <article class="feature">
+          <div class="feature-icon">📏</div>
+          <h3>Custom measurements</h3>
+          <p>Track the body metrics that matter most to you.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-icon">📈</div>
+          <h3>Track progress</h3>
+          <p>Review your history and compare your latest entries.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-icon">🎯</div>
+          <h3>Stay focused</h3>
+          <p>Save notes, define goals, and keep momentum in one place.</p>
+        </article>
+      </section>
+
+      <section class="summary-cards">
+        <article class="card summary-top-card">
+          <div class="summary-top-grid">
+            <div class="summary-top-item">
+              <h2>Latest Entry</h2>
+              <p id="latestDate">No entries yet</p>
+            </div>
+            <div class="summary-top-item">
+              <h2>Total Logs</h2>
+              <p id="totalLogs">0</p>
             </div>
           </div>
-          <div class="goals-editor" id="goalsEditor">
-            <div class="goals-editor-heading">Goals</div>
-            <div class="goals-editor-grid" id="goalsEditorRows"></div>
-          </div>
-          <div class="profile-edit-actions">
-            <button type="button" id="saveProfileBtn" class="primary-btn">Save</button>
-            <button type="button" id="cancelProfileEditBtn" class="ghost-btn">Cancel</button>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <section class="body-graph-section">
-      <div class="section-header">
-        <h2>Body progress dashboard</h2>
-        <p>Tap an outline area or choose full body to see historical progress.</p>
-      </div>
-      <div class="body-graph-grid">
-        <div class="body-outline-card">
-          <div class="outline-header outline-edit-header">
+        </article>
+        <article class="card profile-goals-panel">
+          <div class="profile-goals-header">
             <div>
-              <h3>Body zones</h3>
-              <p>Toggle nodes to add their data to the improvement chart.</p>
+              <h2>Profile &amp; Goals</h2>
+              <p>Your details, targets and progress in one place.</p>
             </div>
-            <div class="outline-edit-actions">
-              <button type="button" id="toggleBodyEdit" class="ghost-btn">Edit layout</button>
-              <button type="button" id="addBodyNode" class="ghost-btn hidden">Add node</button>
-            </div>
+            <button type="button" id="profileEditBtn" class="icon-btn" title="Edit profile and goals" aria-label="Edit profile and goals">⚙</button>
           </div>
-          <div class="body-outline" id="bodyOutline" aria-label="Body measurement map">
-            <div class="body-outline-canvas" id="bodyOutlineCanvas"></div>
-          </div>
-          <div class="body-outline-footer">
-            <div class="body-outline-buttons" id="bodyNodeButtons" aria-label="Whole body measurements"></div>
-            <p class="outline-note">Toggle nodes on and off to add their measurement data to the line graph.</p>
-            <p id="adminNote" class="admin-note hidden">Admin: editing the default layout. Drag nodes into position, then press Save layout to update these positions for all new users.</p>
-            <button type="button" id="saveBodyLayout" class="primary-btn hidden">Save layout</button>
-          </div>
-        </div>
-        <div class="chart-card" id="chartCard">
-          <div class="chart-topbar">
-            <div class="chart-title">
-              <h3 id="chartTitle">Improvement Chart</h3>
-              <span id="chartSubtitle">Toggle nodes below to add their measurement data</span>
-            </div>
-          </div>
-          <div class="node-property-panel hidden" id="nodePropertyPanel">
-            <div class="node-property-row">
-              <label>
-                Node label
-                <input type="text" id="selectedNodeLabel" placeholder="Select a node" readonly />
-              </label>
-              <label class="system-toggle">
-                <input type="checkbox" id="nodeSystemToggle" /> Whole body
-              </label>
-            </div>
-            <div class="node-property-row">
-              <label class="symmetry-toggle">
-                <input type="checkbox" id="nodeSymmetryToggle" /> Symmetry
-              </label>
-              <label>
-                Unit
-                <select id="nodeUnit"></select>
-              </label>
-            </div>
-            <div class="node-property-row">
-              <label>
-                Node color
-                <input type="color" id="nodeColor" value="#22d3ee" />
-              </label>
-              <label class="mirror-color hidden" id="mirrorColorWrapper">
-                Mirror color
-                <input type="color" id="nodeMirrorColor" value="#38bdf8" />
-              </label>
-            </div>
 
+          <div class="profile-goals-grid" id="profileGoalsView">
+            <div id="profileView" class="profile-view">
+              <p class="profile-empty">Add your profile details to personalise your dashboard.</p>
+            </div>
+            <div class="goals-panel">
+              <h3 class="goals-heading">Goals</h3>
+              <div id="goalsList" class="goals-list"></div>
+            </div>
           </div>
-          <div class="chart-wrap">
-            <canvas id="bodyChartCanvas" width="800" height="420"></canvas>
+
+          <div class="profile-edit-view hidden" id="profileEditView">
+            <h3 class="edit-heading">Edit profile &amp; goals</h3>
+            <div class="profile-form" id="profileForm">
+              <div class="profile-form-grid">
+                <label>Name <input type="text" id="profileName" placeholder="Your name" /></label>
+                <label>Age <input type="number" id="profileAge" placeholder="Age" min="0" /></label>
+                <label>Sex <select id="profileSex"><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select></label>
+                <label>Height (cm) <input type="number" id="profileHeight" placeholder="Height" min="0" /></label>
+                <label>Weight (kg) <input type="number" id="profileWeight" placeholder="Weight" min="0" /></label>
+                <label>Avg Sleep (hrs) <input type="number" id="profileSleep" placeholder="Hours" min="0" step="0.5" /></label>
+              </div>
+            </div>
+            <div class="goals-editor" id="goalsEditor">
+              <div class="goals-editor-heading">Goals</div>
+              <div class="goals-editor-grid" id="goalsEditorRows"></div>
+            </div>
+            <div class="profile-edit-actions">
+              <button type="button" id="saveProfileBtn" class="primary-btn">Save</button>
+              <button type="button" id="cancelProfileEditBtn" class="ghost-btn">Cancel</button>
+            </div>
           </div>
-          <div class="chart-meta">
-            <span id="chartDataNote">Toggle nodes below to add their data to the chart.</span>
+        </article>
+      </section>
+
+      <section class="body-graph-section">
+        <div class="section-header">
+          <h2>Body progress dashboard</h2>
+          <p>Tap an outline area or choose full body to see historical progress.</p>
+        </div>
+        <div class="body-graph-grid">
+          <div class="body-outline-card">
+            <div class="outline-header outline-edit-header">
+              <div>
+                <h3>Body zones</h3>
+                <p>Toggle nodes to add their data to the improvement chart.</p>
+              </div>
+              <div class="outline-edit-actions">
+                <button type="button" id="toggleBodyEdit" class="ghost-btn">Edit layout</button>
+                <button type="button" id="addBodyNode" class="ghost-btn hidden">Add node</button>
+              </div>
+            </div>
+            <div class="body-outline" id="bodyOutline" aria-label="Body measurement map">
+              <div class="body-outline-canvas" id="bodyOutlineCanvas"></div>
+            </div>
+            <div class="body-outline-footer">
+              <div class="body-outline-buttons" id="bodyNodeButtons" aria-label="Whole body measurements"></div>
+              <p class="outline-note">Toggle nodes on and off to add their measurement data to the line graph.</p>
+              <p id="adminNote" class="admin-note hidden">Admin: editing the default layout. Drag nodes into position, then press Save layout to update these positions for all new users.</p>
+              <button type="button" id="saveBodyLayout" class="primary-btn hidden">Save layout</button>
+            </div>
+          </div>
+          <div class="chart-card" id="chartCard">
+            <div class="chart-topbar">
+              <div class="chart-title">
+                <h3 id="chartTitle">Improvement Chart</h3>
+                <span id="chartSubtitle">Toggle nodes below to add their measurement data</span>
+              </div>
+            </div>
+            <div class="node-property-panel hidden" id="nodePropertyPanel">
+              <div class="node-property-row">
+                <label>
+                  Node label
+                  <input type="text" id="selectedNodeLabel" placeholder="Select a node" readonly />
+                </label>
+                <label class="system-toggle">
+                  <input type="checkbox" id="nodeSystemToggle" /> Whole body
+                </label>
+              </div>
+              <div class="node-property-row">
+                <label class="symmetry-toggle">
+                  <input type="checkbox" id="nodeSymmetryToggle" /> Symmetry
+                </label>
+                <label>
+                  Unit
+                  <select id="nodeUnit"></select>
+                </label>
+              </div>
+              <div class="node-property-row">
+                <label>
+                  Node color
+                  <input type="color" id="nodeColor" value="#22d3ee" />
+                </label>
+                <label class="mirror-color hidden" id="mirrorColorWrapper">
+                  Mirror color
+                  <input type="color" id="nodeMirrorColor" value="#38bdf8" />
+                </label>
+              </div>
+
+            </div>
+            <div class="chart-wrap">
+              <canvas id="bodyChartCanvas" width="800" height="420"></canvas>
+            </div>
+            <div class="chart-meta">
+              <span id="chartDataNote">Toggle nodes below to add their data to the chart.</span>
+            </div>
           </div>
         </div>
+      </section>
+
+      <section class="form-card">
+        <div class="section-header">
+          <h2>Record Measurements</h2>
+          <p>Save body metrics and notes for every check-in.</p>
+        </div>
+        <div class="estimate-bar">
+          <div class="estimate-title">
+            <strong>Estimate body fat</strong>
+            <span>Uses your profile weight, height, age and sex.</span>
+          </div>
+          <button type="button" id="estimateBodyFatBtn" class="secondary-btn">Estimate</button>
+        </div>
+        <form id="entryForm">
+          <div class="row">
+            <label>
+              Date
+              <input type="date" id="date" name="date" required />
+            </label>
+          </div>
+          <div id="measurementFields" class="measurement-fields"></div>
+          <div class="row">
+            <label>
+              Note
+              <input type="text" id="notes" name="notes" placeholder="Optional note" />
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary-btn form-submit-btn">Save Entry</button>
+            <button type="button" id="cancelEditBtn" class="ghost-btn hidden">X</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="entries-section">
+        <div class="section-header">
+          <h2>Measurement History</h2>
+          <p>Scroll through your saved body metrics and review past progress.</p>
+        </div>
+        <div id="entriesList" class="entries-list"></div>
+      </section>
+    </section>
+
+    <!-- ── Calendar ── -->
+    <section class="view-page hidden" id="view-calendar">
+      <div class="page-head">
+        <div>
+          <h2>Calendar</h2>
+          <p>Weekly view of everything scheduled across Diet, Peptides and Exercise.</p>
+        </div>
+      </div>
+      <div class="week-nav">
+        <button type="button" id="calPrev" class="secondary-btn">◀ Prev</button>
+        <input type="date" id="calDatePicker" class="week-date-has" aria-label="Jump to date" />
+        <button type="button" id="calToday" class="secondary-btn">Today</button>
+        <button type="button" id="calNext" class="secondary-btn">Next ▶</button>
+      </div>
+      <div class="week-label" id="calDateLabel">—</div>
+      <div class="week-filters">
+        <label class="wk-toggle"><input type="checkbox" id="calToggleDiet" checked /> Diet</label>
+        <label class="wk-toggle"><input type="checkbox" id="calTogglePeptide" checked /> Peptides</label>
+        <label class="wk-toggle"><input type="checkbox" id="calToggleExercise" checked /> Exercise</label>
+        <label class="wk-toggle"><input type="checkbox" id="calToggleMeas" /> Measurements</label>
+      </div>
+      <div class="week-grid" id="calWeekGrid"></div>
+    </section>
+
+    <!-- ── Diet ── -->
+    <section class="view-page hidden" id="view-diet">
+      <div class="page-head">
+        <div>
+          <h2>Diet</h2>
+          <p>Schedule meals — morning, lunch, dinner, snacks and alcohol.</p>
+        </div>
+      </div>
+      <div class="sched-form card">
+        <div class="sched-form-head">
+          <h3>Add a meal</h3>
+          <p>Schedule a recurring meal and set how often it repeats</p>
+        </div>
+        <div class="sched-kind">
+          
+          <label>Title
+            <input type="text" id="schedTitle" placeholder="e.g. Breakfast — oats &amp; berries" required />
+          </label>
+        </div>
+        <div class="sched-kind-fields" id="schedDietFields">
+          <label>Meal type
+            <select id="schedMeal">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+              <option value="alcohol">Alcohol</option>
+            </select>
+          </label>
+          <label>Items
+            <input type="text" id="schedDietItems" placeholder="Oats, berries, protein shake…" />
+          </label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedExerciseFields">
+          <label>Activity
+            <select id="schedExActivity">
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="mobility">Mobility</option>
+              <option value="core">Core</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Sets <input type="number" id="schedExSets" min="0" placeholder="e.g. 4" /></label>
+          <label>Reps <input type="number" id="schedExReps" min="0" placeholder="e.g. 12" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedPeptideFields">
+          <label>Compound
+            <select id="schedPepSelect"></select>
+          </label>
+          <label>Dose <input type="text" id="schedPepDose" placeholder="e.g. 250 mcg" /></label>
+          <label>Notes <input type="text" id="schedPepNote" placeholder="e.g. on empty stomach" /></label>
+        </div>
+        <div class="sched-row sched-start">
+          <label>Start week <input type="date" id="schedStart" required /></label>
+        </div>
+        
+        <div class="sched-row sched-repeat">
+          <label>Repeat every <input type="number" id="schedRepeatN" min="1" value="1" /></label>
+          <label>Unit
+            <select id="schedRepeatUnit">
+              <option value="day">Day/s</option>
+              <option value="week">Week/s</option>
+              <option value="month">Month/s</option>
+              <option value="year">Year/s</option>
+            </select>
+          </label>
+        </div>
+        <div class="sched-days">
+          <span>On these days</span>
+          <div class="days-check">
+            <label><input type="checkbox" class="schedDay" value="1" /> Sun</label>
+            <label><input type="checkbox" class="schedDay" value="2" /> Mon</label>
+            <label><input type="checkbox" class="schedDay" value="3" /> Tue</label>
+            <label><input type="checkbox" class="schedDay" value="4" /> Wed</label>
+            <label><input type="checkbox" class="schedDay" value="5" /> Thu</label>
+            <label><input type="checkbox" class="schedDay" value="6" /> Fri</label>
+            <label><input type="checkbox" class="schedDay" value="0" /> Sat</label>
+          </div>
+        </div>
+        <div class="sched-end">
+          <span>Ends</span>
+          <label class="end-radio"><input type="radio" name="schedEnd" value="never" checked /> Never</label>
+          <label><input type="radio" name="schedEnd" value="after" /> After <input type="number" id="schedEndAfter" min="1" value="10" /> occurrences</label>
+          <label><input type="radio" name="schedEnd" value="date" /> On <input type="date" id="schedEndDate" /></label>
+        </div>
+        <div class="sched-actions">
+          <button type="button" id="schedAddBtn" class="primary-btn">Add</button>
+        </div>
+      </div>
+      <div class="week-section-head">
+        <h3>Meal schedule</h3>
+        <p>Your meals for this week</p>
+      </div>
+      <div class="card sched-week-block">
+        <div class="week-head">
+          <div class="week-nav">
+            <button type="button" id="dietPrev" class="secondary-btn">◀ Prev</button>
+            <input type="date" id="dietDatePicker" aria-label="Jump to date" />
+            <button type="button" id="dietToday" class="secondary-btn">Today</button>
+            <button type="button" id="dietNext" class="secondary-btn">Next ▶</button>
+          </div>
+          <div class="week-label" id="dietDateLabel"></div>
+        </div>
+        <div class="week-grid" id="dietWeekGrid"></div></div>
+      <div class="card week-list-card">
+        <div class="week-list-title week-list-label">Meals this week</div>
+        <div id="dietWeekList" class="week-list"></div>
       </div>
     </section>
 
-    <section class="form-card">
-      <div class="section-header">
-        <h2>Record Measurements</h2>
-        <p>Save body metrics and notes for every check-in.</p>
-      </div>
-      <div class="estimate-bar">
-        <div class="estimate-title">
-          <strong>Estimate body fat</strong>
-          <span>Uses your profile weight, height, age and sex.</span>
+    <section class="view-page hidden" id="view-peptides">
+      <div class="page-head">
+        <div>
+          <h2>Peptides</h2>
+          <p>Add compounds to your protocol, then schedule doses below.</p>
         </div>
-        <button type="button" id="estimateBodyFatBtn" class="secondary-btn">Estimate</button>
       </div>
-      <form id="entryForm">
-        <div class="row">
-          <label>
-            Date
-            <input type="date" id="date" name="date" required />
+      <div class="sched-form card">
+        <div class="sched-form-head">
+          <h3>Schedule a dose</h3>
+          <p>Schedule a recurring dose and set how often it repeats</p>
+        </div>
+        <div class="sched-kind">
+          
+          <label>Title
+            <input type="text" id="schedTitlePep" placeholder="e.g. BPC-157 morning dose" required />
           </label>
         </div>
-        <div id="measurementFields" class="measurement-fields"></div>
-        <div class="row">
-          <label>
-            Note
-            <input type="text" id="notes" name="notes" placeholder="Optional note" />
+        <div class="sched-kind-fields" id="schedPeptideFieldsPep">
+          <label>Compound
+            <select id="schedPepSelectPep"></select>
+          </label>
+          <label>Dose <input type="text" id="schedPepDosePep" placeholder="e.g. 250 mcg" /></label>
+          <label>Notes <input type="text" id="schedPepNotePep" placeholder="e.g. on empty stomach" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedDietFieldsPep">
+          <label>Meal type
+            <select id="schedMealPep">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+              <option value="alcohol">Alcohol</option>
+            </select>
+          </label>
+          <label>Items <input type="text" id="schedDietItemsPep" placeholder="Oats, berries…" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedExerciseFieldsPep">
+          <label>Activity
+            <select id="schedExActivityPep">
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="mobility">Mobility</option>
+              <option value="core">Core</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Sets <input type="number" id="schedExSetsPep" min="0" placeholder="4" /></label>
+          <label>Reps <input type="number" id="schedExRepsPep" min="0" placeholder="12" /></label>
+        </div>
+        <div class="sched-row sched-start">
+          <label>Start week <input type="date" id="schedStartPep" required /></label>
+        </div>
+        
+        <div class="sched-row sched-repeat">
+          <label>Repeat every <input type="number" id="schedRepeatNPep" min="1" value="1" /></label>
+          <label>Unit
+            <select id="schedRepeatUnitPep">
+              <option value="day">Day/s</option>
+              <option value="week">Week/s</option>
+              <option value="month">Month/s</option>
+              <option value="year">Year/s</option>
+            </select>
           </label>
         </div>
-
-        <div class="form-actions">
-          <button type="submit" class="primary-btn form-submit-btn">Save Entry</button>
-          <button type="button" id="cancelEditBtn" class="ghost-btn hidden">X</button>
+        <div class="sched-days">
+          <span>On these days</span>
+          <div class="days-check">
+            <label><input type="checkbox" class="schedDayPep" value="1" /> Sun</label>
+            <label><input type="checkbox" class="schedDayPep" value="2" /> Mon</label>
+            <label><input type="checkbox" class="schedDayPep" value="3" /> Tue</label>
+            <label><input type="checkbox" class="schedDayPep" value="4" /> Wed</label>
+            <label><input type="checkbox" class="schedDayPep" value="5" /> Thu</label>
+            <label><input type="checkbox" class="schedDayPep" value="6" /> Fri</label>
+            <label><input type="checkbox" class="schedDayPep" value="0" /> Sat</label>
+          </div>
         </div>
-      </form>
+        <div class="sched-end">
+          <span>Ends</span>
+          <label class="end-radio"><input type="radio" name="schedEndPep" value="never" checked /> Never</label>
+          <label><input type="radio" name="schedEndPep" value="after" /> After <input type="number" id="schedEndAfterPep" min="1" value="10" /> occurrences</label>
+          <label><input type="radio" name="schedEndPep" value="date" /> On <input type="date" id="schedEndDatePep" /></label>
+        </div>
+        <div class="sched-actions">
+          <button type="button" id="schedAddBtnPep" class="primary-btn">Add</button>
+        </div>
+      </div>
+      <div class="card collapsible collapsed pep-list-card"><button type="button" class="collapse-head"><span class="collapse-label">Add compounds to your protocol</span><span class="collapse-side"><span class="collapse-count" id="pepProtocolCount" title="Compounds in your protocol"></span><span class="chev">▾</span></span></button><div class="collapse-body"><div class="pep-picker">
+          <input type="text" id="pepSearch" placeholder="Search the compound list…" />
+          <select id="pepSelect"></select>
+          <button type="button" id="pepAddBtn" class="primary-btn">Add to protocol</button>
+        </div>
+        <div id="pepProfile" class="pep-profile"></div></div></div>
+      <div class="week-section-head">
+        <h3>Dose schedule</h3>
+        <p>Your doses for this week</p>
+      </div>
+      <div class="card sched-week-block">
+        <div class="week-head">
+          <div class="week-nav">
+            <button type="button" id="pepPrev" class="secondary-btn">◀ Prev</button>
+            <input type="date" id="pepDatePicker" aria-label="Jump to date" />
+            <button type="button" id="pepToday" class="secondary-btn">Today</button>
+            <button type="button" id="pepNext" class="secondary-btn">Next ▶</button>
+          </div>
+          <div class="week-label" id="pepDateLabel"></div>
+        </div>
+        <div class="week-grid" id="pepWeekGrid"></div></div>
+      <div class="card week-list-card">
+        <div class="week-list-title week-list-label">Doses this week</div>
+        <div id="pepWeekList" class="week-list"></div>
+      </div>
     </section>
 
-    <section class="entries-section">
-      <div class="section-header">
-        <h2>Measurement History</h2>
-        <p>Scroll through your saved body metrics and review past progress.</p>
+    <section class="view-page hidden" id="view-exercise">
+      <div class="page-head">
+        <div>
+          <h2>Exercise</h2>
+          <p>Schedule workouts — dumbbells or bodyweight — with sets and reps.</p>
+        </div>
       </div>
-      <div id="entriesList" class="entries-list"></div>
+      <div class="sched-form card">
+        <div class="sched-form-head">
+          <h3>Schedule a workout</h3>
+          <p>Schedule a recurring workout and set how often it repeats</p>
+        </div>
+        <div class="sched-kind">
+          
+          <label>Title
+            <input type="text" id="schedTitleEx" placeholder="e.g. Morning workout" required />
+          </label>
+        </div>
+        <div class="sched-kind-fields" id="schedExerciseFieldsEx">
+          <label>Activity
+            <select id="schedExActivityEx">
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="mobility">Mobility</option>
+              <option value="core">Core</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Sets <input type="number" id="schedExSetsEx" min="0" placeholder="4" /></label>
+          <label>Reps <input type="number" id="schedExRepsEx" min="0" placeholder="12" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedDietFieldsEx">
+          <label>Meal type
+            <select id="schedMealEx">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+              <option value="alcohol">Alcohol</option>
+            </select>
+          </label>
+          <label>Items <input type="text" id="schedDietItemsEx" placeholder="Oats, berries…" /></label>
+        </div>
+        <div class="sched-kind-fields hidden" id="schedPeptideFieldsEx">
+          <label>Compound
+            <select id="schedPepSelectEx"></select>
+          </label>
+          <label>Dose <input type="text" id="schedPepDoseEx" placeholder="250 mcg" /></label>
+          <label>Notes <input type="text" id="schedPepNoteEx" placeholder="on empty stomach" /></label>
+        </div>
+        <div class="sched-row sched-start">
+          <label>Start week <input type="date" id="schedStartEx" required /></label>
+        </div>
+        
+        <div class="sched-row sched-repeat">
+          <label>Repeat every <input type="number" id="schedRepeatNEx" min="1" value="1" /></label>
+          <label>Unit
+            <select id="schedRepeatUnitEx">
+              <option value="day">Day/s</option>
+              <option value="week">Week/s</option>
+              <option value="month">Month/s</option>
+              <option value="year">Year/s</option>
+            </select>
+          </label>
+        </div>
+        <div class="sched-days">
+          <span>On these days</span>
+          <div class="days-check">
+            <label><input type="checkbox" class="schedDayEx" value="1" /> Sun</label>
+            <label><input type="checkbox" class="schedDayEx" value="2" /> Mon</label>
+            <label><input type="checkbox" class="schedDayEx" value="3" /> Tue</label>
+            <label><input type="checkbox" class="schedDayEx" value="4" /> Wed</label>
+            <label><input type="checkbox" class="schedDayEx" value="5" /> Thu</label>
+            <label><input type="checkbox" class="schedDayEx" value="6" /> Fri</label>
+            <label><input type="checkbox" class="schedDayEx" value="0" /> Sat</label>
+          </div>
+        </div>
+        <div class="sched-end">
+          <span>Ends</span>
+          <label class="end-radio"><input type="radio" name="schedEndEx" value="never" checked /> Never</label>
+          <label><input type="radio" name="schedEndEx" value="after" /> After <input type="number" id="schedEndAfterEx" min="1" value="10" /> occurrences</label>
+          <label><input type="radio" name="schedEndEx" value="date" /> On <input type="date" id="schedEndDateEx" /></label>
+        </div>
+        <div class="sched-actions">
+          <button type="button" id="schedAddBtnEx" class="primary-btn">Add</button>
+        </div>
+      </div>
+      <div class="card collapsible collapsed ex-library-card"><button type="button" class="collapse-head"><span class="collapse-label">Exercise library</span><span class="collapse-side"><span class="collapse-count" id="exLibraryCount" title="Exercises in the library"></span><span class="chev">▾</span></span></button><div class="collapse-body"><div class="ex-actions">
+          <div class="ex-search-row">
+            <input type="text" id="exSearch" placeholder="Search the library…" />
+            <button type="button" id="exAddBtn" class="ex-add-btn">＋ Add custom exercise</button>
+          </div>
+          <div class="ex-filters" id="exTypeFilters">
+            <button type="button" class="ex-filter-pill" data-type="all">All</button>
+            <button type="button" class="ex-filter-pill" data-type="strength">Strength</button>
+            <button type="button" class="ex-filter-pill" data-type="core">Core</button>
+            <button type="button" class="ex-filter-pill" data-type="cardio">Cardio</button>
+            <button type="button" class="ex-filter-pill" data-type="mobility">Mobility</button>
+          </div>
+          <div class="ex-filters" id="exScopeFilters">
+            <button type="button" class="ex-filter-pill active" data-scope="shared">Shared exercises</button>
+            <button type="button" class="ex-filter-pill" data-scope="mine">My exercises</button>
+            <button type="button" class="ex-filter-pill" data-scope="favs">Favorites</button>
+          </div>
+        </div>
+        <div id="exFavSection" class="ex-fav-section"></div>
+        <div id="exLibrary" class="ex-library"></div></div></div>
+      <div class="ex-modal-backdrop hidden" id="exModalBackdrop"><div class="ex-modal" role="dialog" aria-modal="true" aria-labelledby="exModalTitle">
+        <div class="ex-modal-head"><h3 id="exModalTitle">Add exercise</h3><button type="button" class="ex-modal-close" id="exModalClose" aria-label="Close">×</button></div>
+        <div class="ex-modal-body">
+          <label>Name <input type="text" id="exNewName" placeholder="e.g. Incline push-up" /></label>
+          <label>Type <select id="exNewActivity"><option value="strength">Strength</option><option value="core">Core</option><option value="cardio">Cardio</option><option value="mobility">Mobility</option><option value="other">Other</option></select></label>
+          <label>Sets <input type="number" id="exNewSets" min="0" placeholder="e.g. 3" /></label>
+          <label>Reps <input type="number" id="exNewReps" min="0" placeholder="e.g. 12" /></label>
+          <label>Description <textarea id="exNewDescription" placeholder="What this exercise is for…"></textarea></label>
+          <label>How to perform <textarea id="exNewHowto" placeholder="Step-by-step instructions…"></textarea></label>
+          <label>Share with everyone <input type="checkbox" id="exNewShare" checked /> <span style="font:400 12px var(--font-ui);text-transform:none;letter-spacing:0;color:var(--muted)">Share this exercise in the community library</span></label>
+        </div>
+        <div class="ex-modal-actions">
+          <button type="button" class="secondary-btn" id="exModalCancel">Cancel</button>
+          <button type="button" class="primary-btn" id="exModalSave">Save exercise</button>
+        </div>
+      </div></div>
+      <div class="week-section-head">
+        <h3>Weekly schedule</h3>
+        <p>Your workouts for this week</p>
+      </div>
+      <div class="card sched-week-block">
+        <div class="week-head">
+          <div class="week-nav">
+            <button type="button" id="exPrev" class="secondary-btn">◀ Prev</button>
+            <input type="date" id="exDatePicker" aria-label="Jump to date" />
+            <button type="button" id="exToday" class="secondary-btn">Today</button>
+            <button type="button" id="exNext" class="secondary-btn">Next ▶</button>
+          </div>
+          <div class="week-label" id="exDateLabel"></div>
+        </div>
+        <div class="week-grid" id="exWeekGrid"></div></div>
+      <div class="card week-list-card">
+        <div class="week-list-title week-list-label">Workouts this week</div>
+        <div id="exWeekList" class="week-list"></div>
+      </div>
     </section>
   </div>
 

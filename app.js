@@ -1917,7 +1917,7 @@ const exFavGraceSec = 5;       // countdown before an un-favourited card leaves 
 function exCommunity() {
   const out = [];
   const seen = {};
-  const sources = [EXERCISE_LIBRARY].concat(exSharedCache, exMy);
+  const sources = [].concat(EXERCISE_LIBRARY, exSharedCache, exMy);
   sources.forEach((e) => {
     if (!e || !e.name) return;
     const k = String(e.name).toLowerCase();

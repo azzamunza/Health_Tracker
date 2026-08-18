@@ -18,6 +18,8 @@ async function detectHTTables() {
   return HT_TABLES_READY;
 }
 function DB(name) { return HT_TABLES_READY === false ? name : ('HT_' + name); }
+// Shared/community tables always use the HT_ prefix (they only exist after migration).
+function DB_SHARED(name) { return 'HT_' + name; }
 
 // In-memory data cache — single source of truth used by the render layer.
 // Writes are queued (debounced) and pushed to the user's Supabase row.

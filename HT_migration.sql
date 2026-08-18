@@ -189,31 +189,39 @@ where not exists (select 1 from public.ht_exercise_library h where h.name = seed
 -- =====================================================================
 
 -- HT_user_data: users access only their own row (same as legacy user_data).
+drop policy if exists "HT users select own" on public.HT_user_data;
 create policy "HT users select own"
   on public.HT_user_data for select to authenticated
   using (auth.uid() = user_id);
+drop policy if exists "HT users insert own" on public.HT_user_data;
 create policy "HT users insert own"
   on public.HT_user_data for insert to authenticated
   with check (auth.uid() = user_id);
+drop policy if exists "HT users update own" on public.HT_user_data;
 create policy "HT users update own"
   on public.HT_user_data for update to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
 -- HT_default_nodes: readable by all authenticated, only owner writes.
+drop policy if exists "HT default readable" on public.HT_default_nodes;
 create policy "HT default readable"
   on public.HT_default_nodes for select to authenticated using (true);
+drop policy if exists "HT default owner insert" on public.HT_default_nodes;
 create policy "HT default owner insert"
   on public.HT_default_nodes for insert to authenticated
   with check (auth.jwt() ->> 'email' = 'azzamunza@gmail.com');
+drop policy if exists "HT default owner update" on public.HT_default_nodes;
 create policy "HT default owner update"
   on public.HT_default_nodes for update to authenticated
   using (auth.jwt() ->> 'email' = 'azzamunza@gmail.com')
   with check (auth.jwt() ->> 'email' = 'azzamunza@gmail.com');
 
 -- HT_exercise_library: everyone can read, everyone can add.
+drop policy if exists "HT_exercise readable by all" on public.HT_exercise_library;
 create policy "HT_exercise readable by all"
   on public.HT_exercise_library for select to authenticated using (true);
+drop policy if exists "HT_exercise insertable by all" on public.HT_exercise_library;
 create policy "HT_exercise insertable by all"
   on public.HT_exercise_library for insert to authenticated
   with check (true);

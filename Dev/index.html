@@ -294,6 +294,10 @@
         </div>
       </div>
       <div class="sched-form card">
+        <div class="sched-form-head">
+          <h3>Add a meal</h3>
+          <p>Schedule a recurring meal and set how often it repeats</p>
+        </div>
         <div class="sched-kind">
           
           <label>Title
@@ -371,6 +375,10 @@
           <button type="button" id="schedAddBtn" class="primary-btn">Add</button>
         </div>
       </div>
+      <div class="week-section-head">
+        <h3>Meal schedule</h3>
+        <p>Your meals for this week</p>
+      </div>
       <div class="card sched-week-block">
         <div class="week-head">
           <div class="week-nav">
@@ -383,7 +391,7 @@
         </div>
         <div class="week-grid" id="dietWeekGrid"></div></div>
       <div class="card week-list-card">
-        <div class="week-list-title">This week’s schedule</div>
+        <div class="week-list-title week-list-label">Meals this week</div>
         <div id="dietWeekList" class="week-list"></div>
       </div>
     </section>
@@ -396,6 +404,10 @@
         </div>
       </div>
       <div class="sched-form card">
+        <div class="sched-form-head">
+          <h3>Schedule a dose</h3>
+          <p>Schedule a recurring dose and set how often it repeats</p>
+        </div>
         <div class="sched-kind">
           
           <label>Title
@@ -471,12 +483,16 @@
           <button type="button" id="schedAddBtnPep" class="primary-btn">Add</button>
         </div>
       </div>
-      <div class="card collapsible collapsed pep-list-card"><button type="button" class="collapse-head">Add compounds to your protocol <span class="chev">▾</span></button><div class="collapse-body"><div class="pep-picker">
+      <div class="card collapsible collapsed pep-list-card"><button type="button" class="collapse-head"><span class="collapse-label">Add compounds to your protocol</span><span class="collapse-side"><span class="collapse-count" id="pepProtocolCount" title="Compounds in your protocol"></span><span class="chev">▾</span></span></button><div class="collapse-body"><div class="pep-picker">
           <input type="text" id="pepSearch" placeholder="Search the compound list…" />
           <select id="pepSelect"></select>
           <button type="button" id="pepAddBtn" class="primary-btn">Add to protocol</button>
         </div>
         <div id="pepProfile" class="pep-profile"></div></div></div>
+      <div class="week-section-head">
+        <h3>Dose schedule</h3>
+        <p>Your doses for this week</p>
+      </div>
       <div class="card sched-week-block">
         <div class="week-head">
           <div class="week-nav">
@@ -489,7 +505,7 @@
         </div>
         <div class="week-grid" id="pepWeekGrid"></div></div>
       <div class="card week-list-card">
-        <div class="week-list-title">This week’s schedule</div>
+        <div class="week-list-title week-list-label">Doses this week</div>
         <div id="pepWeekList" class="week-list"></div>
       </div>
     </section>
@@ -502,6 +518,10 @@
         </div>
       </div>
       <div class="sched-form card">
+        <div class="sched-form-head">
+          <h3>Schedule a workout</h3>
+          <p>Schedule a recurring workout and set how often it repeats</p>
+        </div>
         <div class="sched-kind">
           
           <label>Title
@@ -577,11 +597,46 @@
           <button type="button" id="schedAddBtnEx" class="primary-btn">Add</button>
         </div>
       </div>
-      <div class="card collapsible collapsed ex-library-card"><button type="button" class="collapse-head">Exercise library <span class="chev">▾</span></button><div class="collapse-body"><div class="ex-actions">
-          <input type="text" id="exSearch" placeholder="Search the library…" />
-          <label class="ex-filter">Show shared only <input type="checkbox" id="exSharedOnly" /></label>
+      <div class="card collapsible collapsed ex-library-card"><button type="button" class="collapse-head"><span class="collapse-label">Exercise library</span><span class="collapse-side"><span class="collapse-count" id="exLibraryCount" title="Exercises in the library"></span><span class="chev">▾</span></span></button><div class="collapse-body"><div class="ex-actions">
+          <div class="ex-search-row">
+            <input type="text" id="exSearch" placeholder="Search the library…" />
+            <button type="button" id="exAddBtn" class="ex-add-btn">＋ Add exercise</button>
+          </div>
+          <div class="ex-filters" id="exTypeFilters">
+            <button type="button" class="ex-filter-pill" data-type="all">All</button>
+            <button type="button" class="ex-filter-pill" data-type="strength">Strength</button>
+            <button type="button" class="ex-filter-pill" data-type="core">Core</button>
+            <button type="button" class="ex-filter-pill" data-type="cardio">Cardio</button>
+            <button type="button" class="ex-filter-pill" data-type="mobility">Mobility</button>
+          </div>
+          <div class="ex-filters" id="exScopeFilters">
+            <button type="button" class="ex-filter-pill active" data-scope="shared">Shared exercises</button>
+            <button type="button" class="ex-filter-pill" data-scope="mine">My exercises</button>
+            <button type="button" class="ex-filter-pill" data-scope="favs">Favorites</button>
+          </div>
         </div>
+        <div id="exFavSection" class="ex-fav-section"></div>
         <div id="exLibrary" class="ex-library"></div></div></div>
+      <div class="ex-modal-backdrop hidden" id="exModalBackdrop"><div class="ex-modal" role="dialog" aria-modal="true" aria-labelledby="exModalTitle">
+        <div class="ex-modal-head"><h3 id="exModalTitle">Add exercise</h3><button type="button" class="ex-modal-close" id="exModalClose" aria-label="Close">×</button></div>
+        <div class="ex-modal-body">
+          <label>Name <input type="text" id="exNewName" placeholder="e.g. Incline push-up" /></label>
+          <label>Type <select id="exNewActivity"><option value="strength">Strength</option><option value="core">Core</option><option value="cardio">Cardio</option><option value="mobility">Mobility</option><option value="other">Other</option></select></label>
+          <label>Sets <input type="number" id="exNewSets" min="0" placeholder="e.g. 3" /></label>
+          <label>Reps <input type="number" id="exNewReps" min="0" placeholder="e.g. 12" /></label>
+          <label>Description <textarea id="exNewDescription" placeholder="What this exercise is for…"></textarea></label>
+          <label>How to perform <textarea id="exNewHowto" placeholder="Step-by-step instructions…"></textarea></label>
+          <label>Share with everyone <input type="checkbox" id="exNewShare" checked /> <span style="font:400 12px var(--font-ui);text-transform:none;letter-spacing:0;color:var(--muted)">Share this exercise in the community library</span></label>
+        </div>
+        <div class="ex-modal-actions">
+          <button type="button" class="secondary-btn" id="exModalCancel">Cancel</button>
+          <button type="button" class="primary-btn" id="exModalSave">Save exercise</button>
+        </div>
+      </div></div>
+      <div class="week-section-head">
+        <h3>Weekly schedule</h3>
+        <p>Your workouts for this week</p>
+      </div>
       <div class="card sched-week-block">
         <div class="week-head">
           <div class="week-nav">
@@ -594,7 +649,7 @@
         </div>
         <div class="week-grid" id="exWeekGrid"></div></div>
       <div class="card week-list-card">
-        <div class="week-list-title">This week’s schedule</div>
+        <div class="week-list-title week-list-label">Workouts this week</div>
         <div id="exWeekList" class="week-list"></div>
       </div>
     </section>

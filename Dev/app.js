@@ -4,6 +4,21 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Named supabaseClient (not `supabase`) to avoid colliding with the CDN's global `supabase` binding.
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ---- Schema migration helper (HT_ prefixed tables with legacy fallback) ----
+// After running Dev/HT_migration.sql the app reads/writes HT_user_data, HT_default_nodes
+// and HT_exercise_library. Until then it transparently falls back to the legacy tables.
+let HT_TABLES_READY = null; // null = unknown, true = HT_ tables exist, false = use legacy
+async function detectHTTables() {
+  try {
+    const { error } = await supabaseClient.from('HT_user_data').select('user_id').limit(1);
+    HT_TABLES_READY = !error;
+  } catch (e) {
+    HT_TABLES_READY = false;
+  }
+  return HT_TABLES_READY;
+}
+function DB(name) { return HT_TABLES_READY === false ? name : ('HT_' + name); }
+
 // In-memory data cache — single source of truth used by the render layer.
 // Writes are queued (debounced) and pushed to the user's Supabase row.
 const dbCache = { nodes: null, profile: null, goals: null, entries: [], peptides: [], exercises: [], diet: {}, schedule: [] };
@@ -145,7 +160,7 @@ function queueDbWrite() {
   if (!currentUserId) return;
   clearTimeout(writeTimer);
   writeTimer = setTimeout(() => {
-    supabaseClient.from('user_data').upsert({
+    supabaseClient.from(DB('user_data')).upsert({
       user_id: currentUserId,
       nodes: dbCache.nodes,
       profile: dbCache.profile,
@@ -1309,7 +1324,7 @@ function enterAdminMode() {
 async function loadSharedDefaultsIntoEditor() {
   try {
     const { data, error } = await supabaseClient
-      .from('default_nodes')
+      .from(DB('default_nodes'))
       .select('nodes')
       .eq('id', 1)
       .maybeSingle();
@@ -1347,7 +1362,7 @@ function updateAdminButton() {
 async function saveDefaultLayout() {
   const nodes = loadBodyNodes();
   try {
-    const { error } = await supabaseClient.from('default_nodes').upsert(
+    const { error } = await supabaseClient.from(DB('default_nodes')).upsert(
       { id: 1, nodes, updated_at: new Date().toISOString() },
       { onConflict: 'id' }
     );
@@ -1513,7 +1528,7 @@ function showAuth() {
 // Pull the shared default nodes (single row, id = 1) from Supabase.
 async function ensureDefaultNodes() {
   const { data, error } = await supabaseClient
-    .from('default_nodes')
+    .from(DB('default_nodes'))
     .select('nodes')
     .eq('id', 1)
     .maybeSingle();
@@ -1545,7 +1560,7 @@ async function hydrateUserData(userId) {
   dbCache.diet = {};
 
   const { data, error } = await supabaseClient
-    .from('user_data')
+    .from(DB('user_data'))
     .select('*')
     .eq('user_id', userId)
     .maybeSingle();
@@ -1581,6 +1596,7 @@ async function hydrateAndShow(session) {
   currentUserId = session.user.id;
   currentUserEmail = session.user.email || '';
   if (userEmail) userEmail.textContent = currentUserEmail;
+  await detectHTTables();
   await hydrateUserData(session.user.id);
   updateAdminButton();
   showApp();
@@ -1669,34 +1685,34 @@ const PEPTIDE_LIBRARY = [
 
 // â”€â”€ Curated home-exercise library (dumbbell / no-equipment) â”€â”€
 const EXERCISE_LIBRARY = [
-  { name: 'Push-ups', activity: 'strength', sets: 4, reps: 15 },
-  { name: 'Squats (bodyweight)', activity: 'strength', sets: 4, reps: 20 },
-  { name: 'Lunges', activity: 'strength', sets: 3, reps: 15 },
-  { name: 'Plank hold', activity: 'core', sets: 3, reps: 60 },
-  { name: 'Glute bridge', activity: 'strength', sets: 4, reps: 15 },
-  { name: 'Burpees', activity: 'cardio', sets: 3, reps: 12 },
-  { name: 'Mountain climbers', activity: 'cardio', sets: 4, reps: 30 },
-  { name: 'High knees', activity: 'cardio', sets: 3, reps: 45 },
-  { name: 'Star jumps', activity: 'cardio', sets: 4, reps: 20 },
-  { name: 'Dumbbell goblet squat', activity: 'strength', sets: 4, reps: 12 },
-  { name: 'Dumbbell shoulder press', activity: 'strength', sets: 4, reps: 10 },
-  { name: 'Dumbbell bicep curl', activity: 'strength', sets: 4, reps: 12 },
-  { name: 'Dumbbell row', activity: 'strength', sets: 4, reps: 12 },
-  { name: 'Dumbbell deadlift', activity: 'strength', sets: 4, reps: 10 },
-  { name: 'Dumbbell chest press', activity: 'strength', sets: 4, reps: 12 },
-  { name: 'Dumbbell lateral raise', activity: 'strength', sets: 4, reps: 12 },
-  { name: 'Dumbbell reverse fly', activity: 'strength', sets: 3, reps: 12 },
-  { name: 'Dumbbell tricep extension', activity: 'strength', sets: 3, reps: 12 },
-  { name: 'Dumbbell farmer carry', activity: 'cardio', sets: 4, reps: 60 },
-  { name: 'Dumbbell renegade row', activity: 'strength', sets: 3, reps: 10 },
-  { name: 'Bulgarian split squat', activity: 'strength', sets: 3, reps: 10 },
-  { name: 'Side plank', activity: 'core', sets: 3, reps: 40 },
-  { name: 'Dead bug', activity: 'core', sets: 3, reps: 12 },
-  { name: 'Russian twist (weighted)', activity: 'core', sets: 3, reps: 20 },
-  { name: 'Step-ups', activity: 'strength', sets: 4, reps: 12 },
-  { name: 'Calf raises', activity: 'strength', sets: 4, reps: 20 },
-  { name: 'Band pull-apart', activity: 'mobility', sets: 3, reps: 15 },
-  { name: 'Cat-cow stretch', activity: 'mobility', sets: 2, reps: 12 }
+  { name: 'Push-ups', activity: 'strength', sets: 4, reps: 15, description: 'Foundational upper-body push movement. Builds chest, shoulders, triceps and core stability.', howto: 'Start in a high plank with hands shoulder-width apart. Lower your chest toward the floor keeping a straight line from head to heels, elbows at ~45°. Push back up to full arm extension. Scale down by supporting on knees if needed.' },
+  { name: 'Squats (bodyweight)', activity: 'strength', sets: 4, reps: 20, description: 'Lower-body strength builder targeting the quads, glutes and hamstrings.', howto: 'Stand with feet shoulder-width, toes slightly out. Sit the hips back and down as if into a chair, keep the chest up, then drive through the heels to stand. Keep knees tracking over the toes.' },
+  { name: 'Lunges', activity: 'strength', sets: 3, reps: 15, description: 'Unilateral leg exercise improving single-leg strength, balance and hip stability.', howto: 'Step forward into a lunge, lowering the back knee toward the floor while the front thigh ends roughly parallel. Push off the front foot to return. Alternate legs each rep.' },
+  { name: 'Plank hold', activity: 'core', sets: 3, reps: 60, description: 'Isometric core hold building trunk stability and posture endurance.', howto: 'Assume a forearm plank with elbows under shoulders. Brace the core and glutes so the body forms a straight line from head to heels. Hold for the target time without letting the hips sag.' },
+  { name: 'Glute bridge', activity: 'strength', sets: 4, reps: 15, description: 'Glute and hamstring activation while reinforcing posterior-chain strength.', howto: 'Lie on your back, feet flat and hip-width. Drive through the heels to lift the hips until the body forms a line from shoulders to knees, squeeze the glutes at the top, then lower slowly.' },
+  { name: 'Burpees', activity: 'cardio', sets: 3, reps: 12, description: 'Full-body conditioning and heart-rate builder combining squat, plank and jump.', howto: 'From standing, squat to the floor, jump or step the feet back to a plank, drop to a push-up (optional), jump the feet back in and leap up with a small jump. Keep it continuous and controlled.' },
+  { name: 'Mountain climbers', activity: 'cardio', sets: 4, reps: 30, description: 'Dynamic core and cardio move driven by quick alternating knee drives.', howto: 'From a high plank, drive one knee toward the chest, then switch legs rapidly as if running in place. Keep the hips level and the core braced for the whole set.' },
+  { name: 'High knees', activity: 'cardio', sets: 3, reps: 45, description: 'Lower-intensity cardio that raises heart rate and improves rhythm.', howto: 'March or jog on the spot while driving each knee up to hip height. Keep an upright torso and pump the arms in time. Move faster as your form stays consistent.' },
+  { name: 'Star jumps', activity: 'cardio', sets: 4, reps: 20, description: 'Explosive full-body jump for conditioning, power and mobility.', howto: 'Start with feet together and arms at your sides. Jump while spreading feet wide and raising both arms overhead to form an X, then land softly and return to the start.' },
+  { name: 'Dumbbell goblet squat', activity: 'strength', sets: 4, reps: 12, description: 'Weighted squat variation strengthening the legs and upper back.', howto: 'Hold a dumbbell at your chest with both hands. Squat down with back straight and elbows inside the knees, then drive back up to standing. Keep the weight close to the chest.' },
+  { name: 'Dumbbell shoulder press', activity: 'strength', sets: 4, reps: 10, description: 'Vertical press building shoulder and upper-arm strength.', howto: 'Sit or stand with a dumbbell in each hand at shoulder height. Press overhead until the arms are straight, keeping the core braced, then lower back with control.' },
+  { name: 'Dumbbell bicep curl', activity: 'strength', sets: 4, reps: 12, description: 'Isolates the biceps for arm strength and size.', howto: 'Stand with a dumbbell in each hand, palms facing forward. Curl the weights toward your shoulders without swinging the elbows, then lower slowly under control.' },
+  { name: 'Dumbbell row', activity: 'strength', sets: 4, reps: 12, description: 'Horizontal pulling for the back, rear shoulders and grip strength.', howto: 'Hinge forward with a flat back, holding a dumbbell in each hand. Pull the weights toward your hips, squeezing the shoulder blades, then lower under control.' },
+  { name: 'Dumbbell deadlift', activity: 'strength', sets: 4, reps: 10, description: 'Hip-hinge strength targeting the posterior chain and grip.', howto: 'Stand with dumbbells at your thighs. Push the hips back and lower the weights toward the floor, keeping a flat back, then stand tall by driving the hips forward and squeezing glutes.' },
+  { name: 'Dumbbell chest press', activity: 'strength', sets: 4, reps: 12, description: 'Horizontal press for chest, triceps and shoulder strength.', howto: 'Lie on a bench holding a dumbbell in each hand above your chest. Lower the weights to the sides of your chest, then press back up to full extension.' },
+  { name: 'Dumbbell lateral raise', activity: 'strength', sets: 4, reps: 12, description: 'Isolation move for the side deltoids to widen the shoulder line.', howto: 'Stand with a dumbbell in each hand at your sides. Raise the arms out to the sides till shoulder height, leading with the elbows, then lower slowly without momentum.' },
+  { name: 'Dumbbell reverse fly', activity: 'strength', sets: 3, reps: 12, description: 'Trains the rear deltoids and upper-back posture muscles.', howto: 'Hinge forward with a flat back, dumbbells hanging. Open the arms out to the sides keeping a slight elbow bend, then lower with control.' },
+  { name: 'Dumbbell tricep extension', activity: 'strength', sets: 3, reps: 12, description: 'Extends the triceps straighten to build upper-arm mass.', howto: 'Hold one dumbbell overhead with both hands. Lower it behind your head by bending the elbows, keeping the elbows pointing up, then extend back overhead.' },
+  { name: 'Dumbbell farmer carry', activity: 'cardio', sets: 4, reps: 60, description: 'Loaded walk for grip, core and posture endurance and conditioning.', howto: 'Hold a heavy dumbbell in each hand with shoulders pulled back. Walk upright in a straight line for the allotted time, swapping sides if you go far.' },
+  { name: 'Dumbbell renegade row', activity: 'strength', sets: 3, reps: 10, description: 'Plank-based row combining core stability with back pulling.', howto: 'From a high plank with a dumbbell in each hand, row one weight to your ribs while the body stays level, then switch sides after the rep pattern.' },
+  { name: 'Bulgarian split squat', activity: 'strength', sets: 3, reps: 10, description: 'Single-leg squat building lower-body strength and stability.', howto: 'Place your rear foot on a bench or surface. Lower straight up and increase the strength of the hips until the front thigh is about level, then drive back up through the front leg alone.' },
+  { name: 'Side plank', activity: 'core', sets: 3, reps: 40, description: 'Lateral core stability for the obliques and the side body.', howto: 'Lie on your side propped on your forearm with feet stacked. Lift your hips so the body forms a straight line and hold. Keep the elbow under the shoulder.' },
+  { name: 'Dead bug', activity: 'core', sets: 3, reps: 12, description: 'Anti-extension core move strengthening the deep core without hip posting.', howto: 'Lie on your back, arms to the ceiling and knees bent at 90°. Slowly lower the opposite arm and leg toward the floor while keeping the lower back pressed down, then return.' },
+  { name: 'Russian twist (weighted)', activity: 'core', sets: 3, reps: 20, description: 'Rotational core work for the obliques.', howto: 'Sit with knees bent and feet hovering. Rotate the torso side to side while holding a weight, tapping the floor beside each hip while keeping the chest lifted.' },
+  { name: 'Step-ups', activity: 'strength', sets: 4, reps: 12, description: 'Stair-style unilateral leg strength and balance exercise.', howto: 'Step one foot onto a sturdy surface, drive through that leg to bring the other foot up, then steps. alternate legs and keep the hips square.' },
+  { name: 'Calf raises', activity: 'strength', sets: 4, reps: 20, description: 'Isolates the calf and soleus for ankle strength and definition.', howto: 'Stand tall and rise onto the balls of your feet as high as possible, hold briefly, then lower the heels, under control. Add weight in a goblet position to progress.' },
+  { name: 'Band pull-apart', activity: 'mobility', sets: 3, reps: 15, description: 'Stretches and strengthens the upper back and rear delts for posture.', howto: 'Hold a light band at chest height with both hands this width. Keeping the arms straight, pull the band outward until the shoulder blades squeeze, then return slowly.' },
+  { name: 'Cat-cow stretch', activity: 'mobility', sets: 2, reps: 12, description: 'Spinal mobility drill to warm up the back and core.', howto: 'On all fours, alternate arching the back (cow) and rounding it (cat) by timing the movement with breathing and moving the tailbone with the head.' }
 ];
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'alcohol'];
@@ -1802,6 +1818,8 @@ function removePeptideFromProfile(name) {
 function renderPeptideProfile() {
   const el = document.getElementById('pepProfile'); if (!el) return;
   const profile = loadPeptides();
+  const badge = document.getElementById('pepProtocolCount');
+  if (badge) badge.textContent = profile.length + (profile.length === 1 ? ' compound' : ' compounds');
   if (!profile.length) { el.innerHTML = '<p class="dc-empty">No compounds added yet. Pick one above and press â€œAdd to protocolâ€.</p>'; return; }
   el.innerHTML = '';
   profile.forEach((entry) => {
@@ -1878,39 +1896,310 @@ function wireExerciseForm() {
   const shared = document.getElementById('exSharedOnly'); if (shared) shared.addEventListener('change', renderLibraryFiltered);
   const form = document.getElementById('exForm'); if (form) form.addEventListener('submit', addExerciseEntry);
 }
-function renderLibrary() { renderLibraryBase(EXERCISE_LIBRARY); }
+function renderLibrary() {
+  const total = exCommunity().length;
+  const badge = document.getElementById('exLibraryCount');
+  if (badge) badge.textContent = total + (total === 1 ? ' exercise' : ' exercises');
+  renderLibraryFiltered();
+}
+
+// ---- Shared (community) + per-user library state ----
+// Shared exercises live in HT_exercise_library (Supabase). The curated EXERCISE_LIBRARY
+// acts as the offline seed/fallback. Never-shared user exercises live in exMy and are
+// persisted to the user's own profile row so they survive reloads.
+let exSharedCache = [];        // exercises loaded from HT_exercise_library
+let exMy = [];                 // the signed-in user's own (non-shared) library
+let exFavs = [];               // lowercased names of favourited exercises
+let exFavUndo = {};            // name -> {timer, interval, left}
+const exFavGraceSec = 5;       // countdown before an un-favourited card leaves Favourites
+
+// Deduped union: curated seed + community rows + the user's own (non-shared) library.
+function exCommunity() {
+  const out = [];
+  const seen = {};
+  const sources = [EXERCISE_LIBRARY].concat(exSharedCache, exMy);
+  sources.forEach((e) => {
+    if (!e || !e.name) return;
+    const k = String(e.name).toLowerCase();
+    if (seen[k]) return;
+    seen[k] = true;
+    out.push(e);
+  });
+  return out;
+}
+
+function currentExScope() {
+  const a = document.querySelector('#exScopeFilters .ex-filter-pill.active');
+  return a ? a.dataset.scope : 'shared';
+}
+function currentExType() {
+  const a = document.querySelector('#exTypeFilters .ex-filter-pill.active');
+  return a ? a.dataset.type : 'all';
+}
+
 function renderLibraryFiltered() {
   const q = (document.getElementById('exSearch').value || '').toLowerCase().trim();
-  const sharedOnly = document.getElementById('exSharedOnly') ? document.getElementById('exSharedOnly').checked : false;
-  // Curated set plus any of your own exercises flagged “shared”.
-  const myShared = loadExercises().filter((e) => e.shared);
-  const combined = EXERCISE_LIBRARY.concat(myShared);
-  const seen = {};
-  const merged = combined.filter((e) => {
-    const k = e.name.toLowerCase();
-    if (seen[k]) return false;
-    seen[k] = true;
-    return true;
-  });
-  let src = sharedOnly ? merged.filter((e) => e.shared) : merged;
-  if (q) src = src.filter((e) => e.name.toLowerCase().includes(q));
+  const scope = currentExScope();
+  const type = currentExType();
+  const all = exCommunity();
+  const sharedNames = {};
+  [].concat(EXERCISE_LIBRARY, exSharedCache).forEach((e) => { if (e && e.name) sharedNames[String(e.name).toLowerCase()] = true; });
+  const mineNames = {};
+  exMy.forEach((m) => { if (m && m.name) mineNames[String(m.name).toLowerCase()] = true; });
+  let src = all;
+  if (scope === 'shared') src = src.filter((e) => sharedNames[String(e.name || '').toLowerCase()]);
+  if (scope === 'mine') src = src.filter((e) => mineNames[String(e.name || '').toLowerCase()]);
+  if (scope === 'favs') src = src.filter((e) => exFavs.indexOf(String(e.name || '').toLowerCase()) !== -1);
+  if (type !== 'all') src = src.filter((e) => (e.activity || 'other') === type);
+  if (q) src = src.filter((e) => (e.name || '').toLowerCase().includes(q));
+  const badge = document.getElementById('exLibraryCount');
+  if (badge) badge.textContent = all.length + (all.length === 1 ? ' exercise' : ' exercises');
   renderLibraryBase(src);
 }
+
 function renderLibraryBase(source) {
-  const el = document.getElementById('exLibrary'); if (!el) return;
-  if (!source.length) { el.innerHTML = '<p class="ex-empty">No exercises match your filter.</p>'; return; }
-  el.innerHTML = '';
-  source.forEach((entry) => {
-    const card = document.createElement('div');
-    card.className = 'ex-card';
-    card.innerHTML = '<div class="ec-top"><h4>' + escHtml(entry.name) + '</h4>'
-      + '<span class="ec-tag">' + escHtml(ACTIVITY_LABELS[entry.activity] || entry.activity || 'Other') + '</span></div>'
-      + '<div class="ec-meta"><span>Sets ' + (entry.sets || 0) + '</span><span>Reps ' + (entry.reps || 0) + '</span></div>'
-      + '<button type="button" class="ec-add">Log for today</button>';
-    card.querySelector('.ec-add').addEventListener('click', () => logLibraryToday(entry));
-    el.appendChild(card);
-  });
+  // Favourites section pinned above the main grid (skipped when the filter is already Favourites).
+  if (currentExScope() !== 'favs') renderFavs();
+  const grid = document.getElementById('exLibrary');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!source.length) { grid.innerHTML = '<p class="ex-empty">No exercises match your filter.</p>'; return; }
+  const frag = document.createDocumentFragment();
+  source.forEach((entry) => frag.appendChild(buildExerciseCard(entry)));
+  grid.appendChild(frag);
 }
+
+// Declarative card renderer. Rebuilding is cheap, so favourites/undo redraw cleanly.
+function buildExerciseCard(entry) {
+  const name = String(entry.name || 'Unnamed');
+  const key = name.toLowerCase();
+  const faved = exFavs.indexOf(key) !== -1;
+  const undo = exFavUndo[key];
+  const card = document.createElement('div');
+  card.className = 'ex-card' + (faved ? ' faved' : '');
+  card.setAttribute('data-ex-key', key);
+  card.innerHTML =
+    '<div class="ec-top"><h4>' + escHtml(name) + '</h4>'
+    + '<button type="button" class="ex-fav-toggle' + (faved ? ' faved' : '') + '" data-key="' + escHtml(key) + '" aria-label="' + (faved ? 'Remove from favourites' : 'Add to favourites') + '">' + (faved ? '♥' : '♡') + '</button></div>'
+    + '<div class="ec-meta"><span class="ec-tag">' + escHtml(ACTIVITY_LABELS[entry.activity] || entry.activity || 'Other') + '</span><span>Sets ' + (entry.sets || 0) + '</span><span>Reps ' + (entry.reps || 0) + '</span></div>'
+    + (undo ? '<div class="ex-fav-undo">Removing in ' + undo.left + 's <button type="button" class="ex-undo-keep" data-key="' + escHtml(key) + '">Undo</button></div>' : '')
+    + '<a href="#" class="ex-more-info" data-key="' + escHtml(key) + '">more info</a>'
+    + '<div class="ex-detail hidden" data-detail="' + escHtml(key) + '"><strong>Purpose</strong>' + escHtml(entry.description || 'No description added yet.') + '<strong>How to perform</strong>' + escHtml(entry.howto || 'No instructions added yet.') + '</div>'
+    + '<button type="button" class="ec-add">Log for today</button>';
+
+  card.querySelector('.ex-fav-toggle').addEventListener('click', (ev) => { ev.stopPropagation(); toggleFavourite(key); });
+  const undoBtn = card.querySelector('.ex-undo-keep');
+  if (undoBtn) undoBtn.addEventListener('click', (ev) => { ev.stopPropagation(); cancelFavUndo(key); });
+  card.querySelector('.ex-more-info').addEventListener('click', (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    const d = card.querySelector('.ex-detail'); if (d) d.classList.toggle('hidden');
+  });
+  card.querySelector('.ec-add').addEventListener('click', () => logLibraryToday(entry));
+  return card;
+}
+
+// Favourites section pinned above the list. Un-favouriting starts a per-card countdown;
+// when it lapses, only that card is removed. Other pending countdowns are untouched.
+function renderFavs() {
+  const host = document.getElementById('exFavSection');
+  if (!host) return;
+  if (!exFavs.length) { host.innerHTML = ''; return; }
+  const items = exCommunity().filter((e) => exFavs.indexOf(String(e.name || '').toLowerCase()) !== -1);
+  if (!items.length) { host.innerHTML = ''; return; }
+  const frag = document.createDocumentFragment();
+  const title = document.createElement('div');
+  title.className = 'ex-fav-title';
+  title.textContent = 'Favourites';
+  frag.appendChild(title);
+  const grid = document.createElement('div');
+  grid.className = 'ex-library';
+  const gfrag = document.createDocumentFragment();
+  items.forEach((entry) => gfrag.appendChild(buildExerciseCard(entry)));
+  grid.appendChild(gfrag);
+  frag.appendChild(grid);
+  host.innerHTML = '';
+  host.appendChild(frag);
+}
+
+function toggleFavourite(key) {
+  key = String(key || '').toLowerCase();
+  const item = exCommunity().find((e) => String(e.name || '').toLowerCase() === key);
+  if (!item || !item.name) return;
+  const idx = exFavs.indexOf(key);
+  if (idx !== -1) {
+    // Un-favourite: begin a per-card countdown before it leaves the Favourites section.
+    if (!exFavUndo[key]) startFavUndo(key);
+  } else {
+    cancelFavUndo(key);
+    exFavs.push(key);
+    persistFavs();
+    renderLibraryFiltered();
+  }
+}
+
+function startFavUndo(key) {
+  const u = { left: exFavGraceSec, timer: null, interval: null };
+  exFavUndo[key] = u;
+  u.interval = setInterval(() => {
+    const state = exFavUndo[key];
+    if (!state) return;
+    state.left -= 1;
+    if (state.left <= 0) {
+      clearInterval(state.interval);
+      clearTimeout(state.timer);
+      removeFavAndReflow(key);
+    } else {
+      renderFavs();
+    }
+  }, 1000);
+  u.timer = setTimeout(() => {
+    const state = exFavUndo[key];
+    if (state) clearInterval(state.interval);
+    removeFavAndReflow(key);
+  }, exFavGraceSec * 1000);
+  renderFavs();
+}
+
+// Removes only this key from Favourites; other cards/countdowns are not disturbed.
+function removeFavAndReflow(key) {
+  const remIdx = exFavs.indexOf(key);
+  if (remIdx !== -1) exFavs.splice(remIdx, 1);
+  delete exFavUndo[key];
+  persistFavs();
+  renderFavs();
+  renderLibraryFiltered();
+}
+
+function cancelFavUndo(key) {
+  const u = exFavUndo[key];
+  if (!u) return;
+  clearInterval(u.interval);
+  clearTimeout(u.timer);
+  delete exFavUndo[key];
+  renderFavs();
+  renderLibraryFiltered();
+}
+
+// ---- Favourites + my-library persistence (per-user, stored in the profile row) ----
+function persistFavs() {
+  const p = loadProfile();
+  p.exerciseFavs = exFavs.slice();
+  saveProfile(p);
+}
+function loadExFavs() {
+  const p = loadProfile();
+  exFavs = Array.isArray(p.exerciseFavs) ? p.exerciseFavs.slice() : [];
+}
+function loadMyLibrary() {
+  const p = loadProfile();
+  exMy = Array.isArray(p.exerciseLibrary) ? p.exerciseLibrary.slice() : [];
+}
+function persistMyLibrary() {
+  const p = loadProfile();
+  p.exerciseLibrary = exMy.slice();
+  saveProfile(p);
+}
+
+// Load shared/community exercises from HT_exercise_library (Supabase).
+// Best-effort: the curated EXERCISE_LIBRARY const stays the offline fallback.
+async function loadSharedExercises() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.from(DB_SHARED('exercise_library')).select('*');
+    if (!error && Array.isArray(data)) {
+      // Merge curated text into any DB rows that lack a description/howto, and
+      // upsert the curated set so existing exercises carry rich text in Supabase.
+      const byName = {};
+      data.forEach((r) => { byName[String(r.name || '').toLowerCase()] = r; });
+      const toUpsert = [];
+      EXERCISE_LIBRARY.forEach((cur) => {
+        const k = String(cur.name || '').toLowerCase();
+        const row = byName[k];
+        if (row && row.description && row.howto) return; // already rich
+        toUpsert.push({ name: cur.name, activity: cur.activity, sets: cur.sets, reps: cur.reps, description: cur.description || '', howto: cur.howto || '' });
+      });
+      if (toUpsert.length) {
+        supabaseClient.from(DB_SHARED('exercise_library')).upsert(toUpsert, { onConflict: 'name' })
+          .then(({ error: uErr }) => { if (uErr) console.warn('HT_exercise_library self-seed skipped', uErr.message); })
+          .catch((err) => console.warn('HT_exercise_library self-seed error', err.message));
+      }
+      exSharedCache = data.map((r) => ({
+        name: r.name,
+        activity: r.activity || 'other',
+        sets: r.sets || 0,
+        reps: r.reps || 0,
+        description: r.description || '',
+        howto: r.howto || '',
+        shared: true
+      }));
+      renderLibrary();
+    }
+  } catch (err) {
+    console.warn('HT_exercise_library load failed (schema ready?)', err.message);
+  }
+}
+function openExerciseModal() {
+  const bd = document.getElementById('exModalBackdrop');
+  if (bd) bd.classList.remove('hidden');
+  const name = document.getElementById('exNewName');
+  if (name) name.focus();
+}
+function closeExerciseModal() {
+  const bd = document.getElementById('exModalBackdrop');
+  if (bd) bd.classList.add('hidden');
+}
+function wireExerciseModal() {
+  const openBtn = document.getElementById('exAddBtn');
+  if (openBtn) openBtn.addEventListener('click', openExerciseModal);
+  const closeBtn = document.getElementById('exModalClose');
+  if (closeBtn) closeBtn.addEventListener('click', closeExerciseModal);
+  const cancelBtn = document.getElementById('exModalCancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeExerciseModal);
+  const bd = document.getElementById('exModalBackdrop');
+  if (bd) bd.addEventListener('click', (ev) => { if (ev.target === bd) closeExerciseModal(); });
+  const saveBtn = document.getElementById('exModalSave');
+  if (saveBtn) saveBtn.addEventListener('click', saveNewExercise);
+}
+function saveNewExercise() {
+  const name = (document.getElementById('exNewName').value || '').trim();
+  if (!name) { alert('Please enter an exercise name.'); return; }
+  const activity = (document.getElementById('exNewActivity').value || 'other');
+  const sets = parseInt(document.getElementById('exNewSets').value, 10) || 0;
+  const reps = parseInt(document.getElementById('exNewReps').value, 10) || 0;
+  const description = (document.getElementById('exNewDescription').value || '').trim();
+  const howto = (document.getElementById('exNewHowto').value || '').trim();
+  const share = document.getElementById('exNewShare') ? document.getElementById('exNewShare').checked : false;
+  const entry = { name, activity, sets, reps, description, howto, shared: share };
+  const existing = exCommunity().find((e) => String(e.name || '').toLowerCase() === name.toLowerCase());
+  if (existing) {
+    // Update the existing entry's detail text in place.
+    existing.description = description;
+    existing.howto = howto;
+    if (share) pushExerciseToCommunity(existing);
+  } else if (share) {
+    exSharedCache.push(entry);
+    pushExerciseToCommunity(entry);
+  } else {
+    exMy.push(entry);
+    persistMyLibrary();
+  }
+  closeExerciseModal();
+  ['exNewName', 'exNewSets', 'exNewReps', 'exNewDescription', 'exNewHowto'].forEach((id) => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderLibrary();
+}
+
+// Push a shared exercise to HT_exercise_library; best-effort (offline seed still works).
+function pushExerciseToCommunity(entry) {
+  if (!currentUserId) return;
+  supabaseClient.from(DB_SHARED('exercise_library')).insert({
+    name: entry.name, activity: entry.activity, sets: entry.sets, reps: entry.reps,
+    description: entry.description, howto: entry.howto, added_by: currentUserId
+  }).then(({ error }) => { if (error) console.warn('HT_exercise_library insert failed', error.message); })
+    .catch((err) => console.warn('HT_exercise_library insert error', err.message));
+}
+
 function logFromLibrary(libEntry) {
   loadExercises().push({
     name: libEntry.name, activity: libEntry.activity || 'strength',
@@ -2302,9 +2591,10 @@ function renderWeekGrid(gridEl, filterKind, startDay) {
     const isToday = sameDay(d, today);
     const col = document.createElement('div');
     col.className = 'wk-col' + (isToday ? ' today' : '');
-    col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[key.getDay()] + '</span><span class="wk-date">' + String(key.getDate()) + '</span></div><div class="wk-body"></div>';
+    col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[key.getDay()] + '</span><span class="wk-date">' + String(key.getDate()) + '</span><span class="wk-dot"></span></div><div class="wk-body"></div>';
     const body = col.querySelector('.wk-body');
     const items = byDay[k] || [];
+    if (items.length) col.classList.add('has-items');
     if (!items.length) body.innerHTML = '<span class="wk-empty">â€”</span>';
     else items.forEach((item) => {
       const cell = document.createElement('div');
@@ -2332,7 +2622,7 @@ function renderCalendarWeek() {
   if (label) {
     const s = weekStart(keyToDateObj(weekCursorKey));
     const e = addDays(s, 6);
-    label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e);
+    label.textContent = fmtRangeHelper(s,e);
   }
   const grid = document.getElementById('calWeekGrid');
   if (!grid) return;
@@ -2355,7 +2645,7 @@ function renderCalendarWeek() {
     const isToday = sameDay(d, today);
     const col = document.createElement('div');
     col.className = 'wk-col' + (isToday ? ' today' : '');
-    col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[d.getDay()] + '</span><span class="wk-date">' + String(d.getDate()) + (d.getMonth() !== rangeStart.getMonth() ? ' <small>' + (d.getMonth() + 1) + '/' + d.getFullYear() + '</small>' : '') + '</span></div><div class="wk-body"></div>';
+    col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[d.getDay()] + '</span><span class="wk-date">' + String(d.getDate()) + (d.getMonth() !== rangeStart.getMonth() ? ' <small>' + (d.getMonth() + 1) + '/' + d.getFullYear() + '</small>' : '') + '</span><span class="wk-dot"></span></div><div class="wk-body"></div>';
     const body = col.querySelector('.wk-body');
     let count = 0;
     (byDay[k] || []).forEach((item) => {
@@ -2374,6 +2664,7 @@ function renderCalendarWeek() {
       cell.innerHTML = '<span class="ci-main"><b>Measurement</b><span>' + meas[k].length + ' log' + (meas[k].length > 1 ? 's' : '') + '</span></span>';
       body.appendChild(cell);
     }
+    if (count) col.classList.add('has-items');
     if (!count) body.innerHTML = '<span class="wk-empty">â€”</span>';
     grid.appendChild(col);
   }
@@ -2435,7 +2726,7 @@ function setWeekCursor(newKey) {
     if (label) {
       const s = weekStart(keyToDateObj(weekCursorKey));
       const e = addDays(s, 6);
-      label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e);
+      label.textContent = fmtRangeHelper(s,e);
     }
   });
   syncAllWeeks();
@@ -2454,7 +2745,7 @@ function wireWeekNav(prefix) {
   if (label) {
     const s = weekStart(keyToDateObj(weekCursorKey));
     const e = addDays(s, 6);
-    label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e);
+    label.textContent = fmtRangeHelper(s,e);
   }
 }/* â•â•â•â•â•â•â•â•â•â•â•â• SCHEDULE FORM WIDGET â•â•â•â•â•â•â•â•â•â•â•â• */
 // prefix âˆˆ { 'sched' (diet page), 'schedPep', 'schedEx' }
@@ -2621,11 +2912,13 @@ function logLibraryToday(libEntry) {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â• PANEL RENDER + INIT â•â•â•â•â•â•â•â•â•â•â•â• */
+function fmtRangeHelper(s,e){return fmtKey(s)+' - '+fmtKey(e);}
+
 function renderScheduleWeek(kind) {
   const gridEl = document.getElementById(SCHED_GRID[kind]);
   if (gridEl) renderWeekGrid(gridEl, kind, keyToDateObj(weekCursorKey));
   const label = document.getElementById(SCHED_LABEL[kind]);
-  if (label) { const s = weekStart(keyToDateObj(weekCursorKey)); const e = addDays(s, 6); label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e); }
+  if (label) { const s = weekStart(keyToDateObj(weekCursorKey)); const e = addDays(s, 6); label.textContent = fmtRangeHelper(s,e); }
 }
 
 // Reworked showView handle â€” overrides the earlier view render calls.
@@ -2707,11 +3000,27 @@ function initSchedule() {
   const pepAddBtn = document.getElementById('pepAddBtn');
   if (pepAddBtn) pepAddBtn.addEventListener('click', () => { addPeptideToProfile(); populateSchedPeptideSelects(); });
 
-  // Exercise library (search + shared-only filter).
+  // Exercise library (search + type/scope filters + add-exercise modal).
   const exSearchInput = document.getElementById('exSearch');
   if (exSearchInput) exSearchInput.addEventListener('input', renderLibraryFiltered);
-  const exShared = document.getElementById('exSharedOnly');
-  if (exShared) exShared.addEventListener('change', renderLibraryFiltered);
+  document.querySelectorAll('#exTypeFilters .ex-filter-pill').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#exTypeFilters .ex-filter-pill').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderLibraryFiltered();
+    });
+  });
+  document.querySelectorAll('#exScopeFilters .ex-filter-pill').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#exScopeFilters .ex-filter-pill').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderLibraryFiltered();
+    });
+  });
+  wireExerciseModal();
+  loadExFavs();
+  loadMyLibrary();
+  loadSharedExercises();
 
   // Collapsible panels (protocol / library expanders).
   document.querySelectorAll('.collapsible .collapse-head').forEach((head) => {
@@ -2724,7 +3033,7 @@ function initSchedule() {
     const picker = document.getElementById(p + 'DatePicker');
     if (picker && !picker.value) picker.value = weekCursorKey;
     const label = document.getElementById(p + 'DateLabel');
-    if (label) { const s = weekStart(new Date()); const e = addDays(s, 6); label.textContent = fmtKey(s) + ' â€“ ' + fmtKey(e); }
+    if (label) { const s = weekStart(new Date()); const e = addDays(s, 6); label.textContent = fmtRangeHelper(s,e); }
   });
   syncAllWeeks();
   showView('dashboard');

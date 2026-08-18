@@ -199,3 +199,84 @@
 .collapsible.collapsed>.collapse-body{display:none}
 .week-list-card{margin-top:14px}.week-list-title{font:700 13px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .week-list{display:flex;flex-direction:column;gap:8px}.wl-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--line);border-radius:6px;background:#0d1218}.wl-item.kind-diet{border-left-color:#ff9d5c}.wl-item.kind-peptide{border-left-color:#f2186b}.wl-item.kind-exercise{border-left-color:#22d3ee}.wl-main{flex:1;min-width:0}.wl-main .ci-main{display:flex;flex-direction:column;gap:2px}.wl-main .ci-main b{color:#fff;font-weight:600;font-size:13px}.wl-main .ci-main span{color:var(--muted);font-size:12px}.wl-chips{display:flex;gap:4px;flex-wrap:wrap}.wl-day{font:500 10px var(--font-mono);color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:2px 5px;text-transform:uppercase}.wl-empty{color:var(--muted);font-size:13px;margin:4px 0}
+
+/* ==== HealthTracker Dev additions: sched-form heads, week-section heads, collapsible polish, day dots, exercise library ==== */
+
+/* Scheduling form section headers (Diet / Peptides / Exercise) */
+.sched-form-head{padding:16px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.sched-form-head h3{font:700 17px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#f5f6f8;margin:0 0 3px}
+.sched-form-head p{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
+.sched-form.card{padding:0 22px 22px;margin-bottom:16px}
+
+/* Weekly-section unifying heading (covers grid + list) */
+.week-section-head{padding:0 2px 10px;margin-top:18px}
+.week-section-head h3{font:700 17px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#f5f6f8;margin:0 0 3px}
+.week-section-head p{font-size:13px;color:var(--muted);margin:0}
+
+/* Demoted "this week" list label */
+.week-list-label{font:600 11px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+
+/* Collapsible headers — full-bar hover, pink animated chevron, count badge */
+.collapsible .collapse-head{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:0;font:700 13px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#cfd4d9;padding:12px 14px;cursor:pointer;border-radius:3px;transition:background .16s ease}
+.collapsible .collapse-head:hover{background:rgba(242,24,107,.08)}
+.collapsible .collapse-label{flex:1;text-align:left}
+.collapsible .collapse-side{display:flex;align-items:center;gap:10px}
+.collapsible .collapse-count{font:600 11px var(--font-mono);letter-spacing:.5px;color:var(--pink-light);background:rgba(242,24,107,.12);border:1px solid rgba(242,24,107,.3);border-radius:999px;padding:3px 10px;text-transform:lowercase}
+.collapsible .chev{font-size:18px;line-height:1;color:var(--pink);transform:rotate(0deg);transition:transform .22s ease,color .16s ease}
+.collapsible.collapsed .chev{transform:rotate(-90deg)}
+.collapsible.collapsed>.collapse-body{display:none}
+
+/* Day-indicator dots on week grids */
+.wk-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.wk-dot{width:7px;height:7px;border-radius:50%;background:var(--pink);box-shadow:0 0 6px rgba(242,24,107,.7);flex:0 0 auto}
+
+/* Exercise library — filter pills, favorites, add modal, more-info */
+.ex-toolbar{display:flex;flex-direction:column;gap:10px}
+.ex-filters{display:flex;flex-wrap:wrap;gap:8px}
+.ex-filter-pill{font:700 12px var(--font-display);letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--line);background:#0d1218;color:#e2e6eb;border-radius:999px;padding:7px 14px;cursor:pointer;transition:all .15s ease}
+.ex-filter-pill:hover{border-color:rgba(247,56,127,.55)}
+.ex-filter-pill.active{background:linear-gradient(135deg,#fc478c,#c30c53);border-color:#f1397d;color:#fff}
+.ex-actions{display:flex;flex-direction:column;gap:12px;padding:14px 16px}
+.ex-search-row{display:flex;gap:8px;align-items:center}
+.ex-search-row input{flex:1}
+.ex-add-btn{margin-left:auto;background:#0d1218;border:1px solid rgba(247,56,127,.5);color:#fc5195;font:700 12px var(--font-display);letter-spacing:.5px;text-transform:uppercase;border-radius:3px;padding:9px 14px;cursor:pointer}
+.ex-add-btn:hover{background:rgba(242,24,107,.12)}
+.ex-fav-section{margin-top:2px}
+.ex-fav-title{font:700 12px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--pink-light);margin:10px 0 8px}
+.ex-fav-section .ex-card{border-color:rgba(242,24,107,.4)}
+.ex-library{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;padding:4px 16px 16px}
+.ex-card{position:relative;border:1px solid var(--line);border-radius:3px;background:linear-gradient(135deg,#0b1016,#080b0f);padding:14px}
+.ex-card .ec-top{display:flex;align-items:flex-start;gap:8px}
+.ex-card .ec-top h4{flex:1;font:700 15px var(--font-display);letter-spacing:.4px;text-transform:uppercase;color:#eceff3;margin:0}
+.ex-fav-toggle{background:none;border:0;font-size:20px;line-height:1;cursor:pointer;color:rgba(255,255,255,.35);transition:color .15s ease,transform .15s ease;padding:0}
+.ex-fav-toggle:hover{transform:scale(1.15)}
+.ex-fav-toggle.faved{color:#fb5572}
+.ex-more-info{display:inline-block;margin-top:10px;font:600 11px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--pink-light);cursor:pointer;background:none;border:0;padding:0;text-align:left}
+.ex-more-info:hover{text-decoration:underline}
+.ex-detail{margin-top:10px;padding:10px 11px;border:1px solid var(--line);border-radius:3px;background:rgba(10,14,19,.55);font-size:13px;line-height:1.55;color:#d6dae0}
+.ex-detail strong{display:block;font:700 12px var(--font-mono);letter-spacing:.8px;text-transform:uppercase;color:var(--pink-light);margin:6px 0 3px}
+.ex-detail strong:first-child{margin-top:0}
+.ex-fav-undo{display:inline-flex;align-items:center;gap:6px;font:600 11px var(--font-mono);letter-spacing:.4px;color:#ff9db0}
+.ex-fav-undo button{background:#0d1218;border:1px solid rgba(247,56,127,.5);color:#fc5195;font:700 11px var(--font-display);text-transform:uppercase;letter-spacing:.4px;border-radius:3px;padding:3px 8px;cursor:pointer}
+
+/* Add-exercise modal */
+.ex-modal-backdrop{position:fixed;inset:0;background:rgba(3,5,8,.72);display:flex;align-items:center;justify-content:center;z-index:1200;padding:20px}
+.ex-modal{width:min(560px,100%);max-height:88vh;overflow:auto;border:1px solid rgba(247,56,127,.45);border-radius:4px;background:#0a0e13;box-shadow:0 24px 70px #000}
+.ex-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line)}
+.ex-modal-head h3{font:700 17px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#f5f6f8;margin:0}
+.ex-modal-close{background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+.ex-modal-close:hover{color:#fb5572}
+.ex-modal-body{padding:18px;display:flex;flex-direction:column;gap:12px}
+.ex-modal-body label{display:flex;flex-direction:column;gap:6px;font:600 12px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.ex-modal-body input,.ex-modal-body select,.ex-modal-body textarea{width:100%;border-radius:2px;border:1px solid var(--line);background:#0a0e13;color:#f5f6f8;padding:11px 12px;font:500 14px var(--font-ui)}
+.ex-modal-body input:focus,.ex-modal-body select:focus,.ex-modal-body textarea:focus{border-color:var(--pink);box-shadow:0 0 0 2px rgba(242,24,107,.15)}
+.ex-modal-body textarea{min-height:74px;resize:vertical}
+.ex-modal-actions{display:flex;gap:10px;justify-content:flex-end;padding:0 18px 18px}
+
+@media(max-width:640px){
+  .ex-library{grid-template-columns:1fr}
+  .ex-search-row{flex-direction:column;align-items:stretch}
+  .ex-add-btn{margin-left:0}
+}/* Show day-indicator dot only on cells that have scheduled content */
+.wk-col .wk-dot{display:none}
+.wk-col.has-items .wk-dot{display:inline-block}

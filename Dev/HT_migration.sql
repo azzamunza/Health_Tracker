@@ -25,6 +25,8 @@ create table if not exists public.HT_user_data (
   updated_at timestamptz not null default now()
 );
 
+alter table public.HT_user_data enable row level security;
+
 -- Copy over every existing user's row so logins after migration keep all data
 -- (including profiles, favourites and the user's own exercise library, which
 -- live inside the profile jsonb column).
@@ -44,6 +46,8 @@ create table if not exists public.HT_default_nodes (
   nodes jsonb not null,
   updated_at timestamptz not null default now()
 );
+
+alter table public.HT_default_nodes enable row level security;
 
 insert into public.HT_default_nodes (id, nodes, updated_at)
 select id, nodes, updated_at from public.default_nodes
@@ -69,6 +73,8 @@ create table if not exists public.HT_exercise_library (
   created_at timestamptz not null default now(),
   unique (name)
 );
+
+alter table public.HT_exercise_library enable row level security;
 
 -- Seed the shared library from the curated list, INCLUDING description + how-to
 -- so the rows carry the full data (not just name/activity/sets/reps).
@@ -179,11 +185,8 @@ where not exists (select 1 from public.ht_exercise_library h where h.name = seed
 
 
 -- =====================================================================
--- Row Level Security
+-- Row Level Security Policies
 -- =====================================================================
-alter table public.HT_user_data enable row level security;
-alter table public.HT_default_nodes enable row level security;
-alter table public.HT_exercise_library enable row level security;
 
 -- HT_user_data: users access only their own row (same as legacy user_data).
 create policy "HT users select own"

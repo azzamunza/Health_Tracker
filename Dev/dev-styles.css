@@ -306,3 +306,114 @@
 .ex-confirm-btn{border:1px solid var(--line);background:#0d1218;color:#dfe3e8;font:700 12px var(--font-display);letter-spacing:.4px;text-transform:uppercase;border-radius:3px;padding:8px 14px;cursor:pointer}
 .ex-confirm-btn.danger{background:var(--pink);border-color:var(--pink);color:#fff}
 .ex-confirm-btn:hover{border-color:#e23a74;color:#fff}
+
+
+/* ==== Global polish: border-radius 8px, section spacing ==== */
+.card,.form-card,.entries-section,.summary-top-card,.profile-goals-panel,.chart-card,.body-outline-card,
+.cal-group,.cal-stat,.ex-card,.pep-chip,.pep-entry,.ex-entry,.diet-card,.wl-item,.ts-item,
+.sched-form,.sched-form.card,.ex-library-card,.ex-log-card,.pep-list-card,.pep-sched-card,
+.feature,.hero-card,.section-header,.auth-card,.ex-modal,.wk-item,.ex-filter-pill,
+.ex-day,.ec-schedule,.confirm-modal,.ex-info-modal,
+.sched-presets .preset,.ex-confirm-btn,.ex-add-btn,.ex-fav-undo button,
+.pep-entry .pe-actions button,.ex-entry .ee-actions button,
+.meal-lib-card,.meal-card,.meal-day,.mc-schedule,.meal-add-btn,.meal-fav-undo button,
+.mydata-section,.mydata-check,.mydata-btn,.mydata-pdf-opt,.cal-list-row{border-radius:8px!important}
+.week-grid{border-radius:8px;overflow:hidden}
+.wk-col:first-child{border-radius:8px 0 0 8px}
+.wk-col:last-child{border-radius:0 8px 8px 0}
+.section-header{border-radius:8px 8px 0 0!important}
+.ex-modal{border-radius:8px!important}
+
+/* Section vertical spacing */
+#view-diet > *,#view-peptides > *,#view-exercise > *,#view-calendar > *{margin-bottom:14px}
+#view-diet > *:last-child,#view-peptides > *:last-child,#view-exercise > *:last-child,#view-mydata > *:last-child{margin-bottom:0}
+
+/* ==== Prev/Today/Next always inline ==== */
+.week-nav{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;flex-wrap:nowrap!important}
+.week-nav .secondary-btn{min-width:auto!important;padding:9px 14px!important;white-space:nowrap}
+.cal-nav{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;flex-wrap:nowrap!important}
+@media(max-width:480px){
+  .week-nav{flex-wrap:wrap!important}
+  .week-nav .secondary-btn{flex:1 1 auto}
+  .cal-nav{flex-wrap:wrap!important}
+}
+
+/* ==== Calendar format controls ==== */
+.cal-format-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 0 0}
+.cal-format-bar > span{font:600 11px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.cal-fmt-pill{font:700 12px var(--font-display);letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--line);background:#0d1218;color:#e2e6eb;border-radius:999px;padding:7px 14px;cursor:pointer;transition:all .15s}
+.cal-fmt-pill:hover{border-color:rgba(247,56,127,.55)}
+.cal-fmt-pill.active{background:linear-gradient(135deg,#fc478c,#c30c53);border-color:#f1397d;color:#fff}
+.cal-list-view{display:flex;flex-direction:column;gap:10px}
+.cal-list-row{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.cal-list-day-head{padding:10px 14px;background:#0c1117;font:700 13px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#e8ebef;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.cal-list-day-head .cld-date{font:500 11px var(--font-mono);color:var(--muted);margin-left:auto}
+.cal-list-day-head.today-head{background:linear-gradient(90deg,rgba(242,24,107,.18),#0c1117)}
+.cal-list-cols{display:grid;grid-template-columns:repeat(var(--col-count,4),1fr)}
+.cal-list-col{border-right:1px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:5px;min-height:48px}
+.cal-list-col:last-child{border-right:0}
+.cal-list-col-head{font:700 10px var(--font-mono);letter-spacing:.8px;text-transform:uppercase;color:var(--muted);padding-bottom:5px;border-bottom:1px solid rgba(205,215,225,.07);margin-bottom:3px}
+.cal-list-item{font-size:12px;color:#d6dae0;line-height:1.35;padding:4px 6px;border-radius:4px;border-left:3px solid var(--line)}
+.cal-list-item.kind-diet{border-left-color:#ff9d5c;background:rgba(255,157,92,.07)}
+.cal-list-item.kind-peptide{border-left-color:#f2186b;background:rgba(242,24,107,.07)}
+.cal-list-item.kind-exercise{border-left-color:#22d3ee;background:rgba(34,211,238,.07)}
+.cal-list-item.kind-meas{border-left-color:#a78bfa;background:rgba(167,139,250,.07)}
+.cal-list-empty{color:#5b646f;font-size:12px;font-style:italic}
+
+/* ==== Collapsible schedule forms ==== */
+.sched-form-collapsible .collapse-head{padding:14px 18px}
+.sched-form-collapsible .collapse-body{padding:0 0 0 0}
+.sched-form-collapsible .sched-form-head{padding:12px 22px 10px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.sched-form-collapsible > .collapse-body > *:first-child{padding-top:14px}
+.sched-form-collapsible .sched-kind,.sched-form-collapsible .sched-kind-fields,
+.sched-form-collapsible .sched-row,.sched-form-collapsible .sched-presets,
+.sched-form-collapsible .sched-days,.sched-form-collapsible .sched-end,
+.sched-form-collapsible .sched-actions{padding-left:22px;padding-right:22px}
+
+/* ==== Diet Meal Library ==== */
+.meal-lib-card .section-header{border:0;background:transparent;padding-left:22px;padding-right:22px}
+.meal-actions{display:flex;flex-direction:column;gap:12px;padding:14px 16px}
+.meal-search-row{display:flex;gap:8px;align-items:center}
+.meal-search-row input{flex:1}
+.meal-add-btn{margin-left:auto;background:#0d1218;border:1px solid rgba(247,56,127,.5);color:#fc5195;font:700 12px var(--font-display);letter-spacing:.5px;text-transform:uppercase;border-radius:8px;padding:9px 14px;cursor:pointer}
+.meal-add-btn:hover{background:rgba(242,24,107,.12)}
+.meal-library{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;padding:4px 16px 16px}
+.meal-card{position:relative;border:1px solid var(--line);border-radius:8px;background:linear-gradient(135deg,#0b1016,#080b0f);padding:14px}
+.meal-card .mc-top{display:flex;align-items:flex-start;gap:8px}
+.meal-card .mc-top h4{flex:1;font:700 15px var(--font-display);letter-spacing:.4px;text-transform:uppercase;color:#eceff3;margin:0}
+.meal-fav-toggle{background:none;border:0;font-size:20px;line-height:1;cursor:pointer;color:rgba(255,255,255,.35);transition:color .15s,transform .15s;padding:0}
+.meal-fav-toggle:hover{transform:scale(1.15)}
+.meal-fav-toggle.faved{color:#fb5572}
+.meal-card .mc-meta{display:flex;gap:10px;margin:8px 0 0;font:600 12px var(--font-mono);color:var(--muted);flex-wrap:wrap}
+.meal-more-info{display:inline-block;margin-top:10px;font:600 11px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--pink-light);cursor:pointer;background:none;border:0;padding:0}
+.meal-more-info:hover{text-decoration:underline}
+.meal-day-row{display:flex;align-items:center;gap:5px;margin-top:10px;flex-wrap:wrap}
+.meal-day-label{font:600 10px var(--font-mono);text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-right:2px}
+.meal-day{width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:#0d1218;color:#aeb6c0;font:700 11px var(--font-display);cursor:pointer;line-height:1}
+.meal-day.on{background:var(--pink);border-color:var(--pink);color:#fff}
+.mc-schedule{width:100%;margin-top:8px;background:#d10f56;border:1px solid #e23a74;color:#fff;font:700 12px var(--font-display);letter-spacing:.6px;text-transform:uppercase;border-radius:8px;padding:9px;cursor:pointer}
+.mc-schedule:hover{background:#f2186b}
+.meal-fav-undo{display:inline-flex;align-items:center;gap:6px;font:600 11px var(--font-mono);letter-spacing:.4px;color:#ff9db0}
+.meal-fav-undo button{background:#0d1218;border:1px solid rgba(247,56,127,.5);color:#fc5195;font:700 11px var(--font-display);text-transform:uppercase;letter-spacing:.4px;border-radius:8px;padding:3px 8px;cursor:pointer}
+.meal-fav-section .meal-card{border-color:rgba(242,24,107,.4)}
+.meal-fav-title{font:700 12px var(--font-mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--pink-light);margin:10px 16px 8px}
+
+/* ==== My Data page ==== */
+.mydata-section{border:1px solid var(--line);border-radius:8px;background:linear-gradient(135deg,#0b1016,#080b0f);padding:22px;margin-bottom:16px}
+.mydata-section h3{font:700 16px var(--font-display);letter-spacing:.5px;text-transform:uppercase;color:#f5f6f8;margin:0 0 10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.mydata-desc{font-size:13px;color:var(--muted);margin-bottom:14px}
+.mydata-checks{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.mydata-check{display:flex;align-items:center;gap:7px;font:600 12px var(--font-display);letter-spacing:.4px;text-transform:uppercase;color:#d6dae0;background:#0d1218;border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer;user-select:none}
+.mydata-check input{width:auto;accent-color:var(--pink)}
+.mydata-actions{display:flex;gap:10px;flex-wrap:wrap}
+.mydata-btn{background:#0d1218;border:1px solid var(--line);color:#e2e6eb;font:700 12px var(--font-display);letter-spacing:.5px;text-transform:uppercase;border-radius:8px;padding:11px 20px;cursor:pointer}
+.mydata-btn:hover{border-color:rgba(247,56,127,.55);background:#11161d}
+.mydata-btn.primary{background:linear-gradient(135deg,#fc478c,#c30c53);border-color:#f1397d;color:#fff}
+.mydata-btn.primary:hover{background:linear-gradient(135deg,#ff5a99,#db1763)}
+.mydata-period{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.mydata-period label{font:600 12px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.mydata-period input[type=date],.mydata-period select{border-radius:6px!important;border:1px solid var(--line)!important;background:#0a0e13!important;color:#f5f6f8!important;padding:9px 11px!important}
+.mydata-pdf-opts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.mydata-pdf-opt{display:flex;align-items:center;gap:7px;font:600 12px var(--font-display);letter-spacing:.4px;text-transform:uppercase;color:#d6dae0;background:#0d1218;border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer;user-select:none}
+.mydata-pdf-opt input{width:auto;accent-color:var(--pink)}
+#printFrame{display:none}

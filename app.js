@@ -1641,11 +1641,9 @@ window.addEventListener('load', () => {
   initApp();
 });
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   HealthTracker Dev â€” Calendar / Diet / Peptides / Exercise pages
+/* HealthTracker Dev - Calendar / Diet / Peptides / Exercise pages
    Extends the existing single-row user_data schema
-   (peptides / exercises / diet JSONB columns).
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   (peptides / exercises / diet JSONB columns). */
 
 // â”€â”€ Curated compound list (from Dev/peptides-data.xlsx, Pantone swatch hex) â”€â”€
 const PEPTIDE_LIBRARY = [
@@ -1772,7 +1770,7 @@ function showView(view) {
   else if (view === 'exercise') { renderLibrary(); renderExerciseLog(); }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â• PEPTIDES â•â•â•â•â•â•â•â•â•â•â•â•
+// ==== PEPTIDES ====
 function wirePeptideForm() {
   const add = document.getElementById('pepAddBtn'); if (add) add.addEventListener('click', addPeptideToProfile);
   const search = document.getElementById('pepSearch'); if (search) search.addEventListener('input', applyPeptideFilter);
@@ -1892,7 +1890,7 @@ function renderPeptideSchedule() {
   });
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â• EXERCISE â•â•â•â•â•â•â•â•â•â•â•â•
+// ==== EXERCISE ====
 function wireExerciseForm() {
   const search = document.getElementById('exSearch'); if (search) search.addEventListener('input', renderLibraryFiltered);
   const shared = document.getElementById('exSharedOnly'); if (shared) shared.addEventListener('change', renderLibraryFiltered);
@@ -2017,7 +2015,12 @@ function scheduleExerciseFromCard(entry, days) {
   const startEl = document.getElementById('schedStartEx');
   if (startEl && !startEl.value) startEl.value = fmtKey(weekStart(new Date()));
   document.querySelectorAll('.schedDayEx').forEach(function (cb) { cb.checked = days.indexOf(Number(cb.value)) !== -1; });
-  const form = document.querySelector('#view-exercise .sched-form');
+  // Collapse library, expand scheduler
+  const lib = document.querySelector('#view-exercise .ex-library-card');
+  const sched = document.getElementById('exSchedForm');
+  if (lib && !lib.classList.contains('collapsed')) lib.classList.add('collapsed');
+  if (sched && sched.classList.contains('collapsed')) sched.classList.remove('collapsed');
+  const form = sched || document.querySelector('#view-exercise .sched-form');
   if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const titleEl = document.getElementById('schedTitleEx');
   if (titleEl) titleEl.focus();
@@ -2342,7 +2345,7 @@ function renderExerciseLog() {
   });
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â• DIET â•â•â•â•â•â•â•â•â•â•â•â•
+// ==== DIET ====
 function wireDietForm() {
   const form = document.getElementById('dietForm'); if (form) form.addEventListener('submit', addDietItem);
   const sel = document.getElementById('dietMeal');
@@ -2404,7 +2407,7 @@ function renderDiet() {
   });
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â• CALENDAR â•â•â•â•â•â•â•â•â•â•â•â•
+// ==== CALENDAR ====
 function measurementEntriesForDay(key) {
   return normalizeEntries(loadEntries()).filter((e) => e.date && toDateKey(new Date(e.date)) === key);
 }
@@ -2500,12 +2503,7 @@ function renderCalendar() {
 
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   HealthTracker Dev â€” unified recurring schedule (v2)
-   Replaces per-type dated entries with a single recurring model
-   shared across Diet / Peptides / Exercise, a weekly grid view,
-   a Calendar week view with type toggles, and a Dashboard "Today".
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* HealthTracker Dev - unified recurring schedule (v2) */
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const KIND_LABEL = { diet: 'Diet', peptide: 'Peptide', exercise: 'Exercise' };
@@ -2692,122 +2690,132 @@ function deleteScheduleItem(id) {
 function renderCalendarWeek() {
   const picker = document.getElementById('calDatePicker');
   if (picker && !picker.value) picker.value = weekCursorKey;
+  // Compute span
+  const spanDays = calSpan === 'fortnight' ? 14 : calSpan === 'month' ? 30 : 7;
+  const rangeStart = weekStart(keyToDateObj(weekCursorKey));
+  const rangeEnd = addDays(rangeStart, spanDays - 1);
+  // Update label
   const label = document.getElementById('calDateLabel');
-  if (label) {
-    const s = weekStart(keyToDateObj(weekCursorKey));
-    const e = addDays(s, 6);
-    label.textContent = fmtRangeHelper(s,e);
-  }
-  const grid = document.getElementById('calWeekGrid');
-  if (!grid) return;
+  if (label) label.textContent = fmtRangeHelper(rangeStart, rangeEnd);
+  // Config toggles
   const cfg = {
     diet: !!document.getElementById('calToggleDiet').checked,
     peptide: !!document.getElementById('calTogglePeptide').checked,
     exercise: !!document.getElementById('calToggleExercise').checked
   };
   const measOn = document.getElementById('calToggleMeas') ? document.getElementById('calToggleMeas').checked : false;
-  const rangeStart = weekStart(keyToDateObj(weekCursorKey));
-  const rangeEnd = weekEnd(rangeStart);
   const byDay = scheduleForWeek(rangeStart, rangeEnd, null);
-  // measurements per day
   const meas = measurementEntriesForWeek(rangeStart, rangeEnd);
   const today = new Date();
-  grid.innerHTML = '';
-  for (let i = 0; i < 7; i += 1) {
-    const d = addDays(rangeStart, i);
-    const k = fmtKey(d);
-    const isToday = sameDay(d, today);
-    const col = document.createElement('div');
-    col.className = 'wk-col' + (isToday ? ' today' : '');
-    col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[d.getDay()] + '</span><span class="wk-date">' + String(d.getDate()) + (d.getMonth() !== rangeStart.getMonth() ? ' <small>' + (d.getMonth() + 1) + '/' + d.getFullYear() + '</small>' : '') + '</span><span class="wk-dot"></span></div><div class="wk-body"></div>';
-    const body = col.querySelector('.wk-body');
-    let count = 0;
-    (byDay[k] || []).forEach((item) => {
-      const kind = item.kind || 'diet';
-      if (!cfg[kind]) return;
-      count += 1;
-      const cell = document.createElement('div');
-      cell.className = 'wk-item kind-' + kind;
-      cell.innerHTML = scheduleItemSub(item) + '<button type="button" class="wk-del" data-id="' + escHtml(item.id) + '" aria-label="Remove">×</button>';
-      const delBtn = cell.querySelector('.wk-del');
-      if (delBtn) delBtn.addEventListener('click', function () { deleteScheduleItem(item.id); });
-      body.appendChild(cell);
-    });
-    if (measOn && meas[k] && meas[k].length) {
-      count += 1;
-      const cell = document.createElement('div');
-      cell.className = 'wk-item kind-meas';
-      cell.innerHTML = '<span class="ci-main"><b>Measurement</b><span>' + meas[k].length + ' log' + (meas[k].length > 1 ? 's' : '') + '</span></span>';
-      body.appendChild(cell);
+  // Target container
+  const container = document.getElementById('calContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (calViewMode === 'list') {
+    // List view: one row per day, columns for each enabled kind
+    const listEl = document.createElement('div');
+    listEl.className = 'cal-list-view';
+    const cols = [];
+    if (cfg.diet) cols.push({ key: 'diet', label: 'Diet' });
+    if (cfg.peptide) cols.push({ key: 'peptide', label: 'Peptides' });
+    if (cfg.exercise) cols.push({ key: 'exercise', label: 'Exercise' });
+    if (measOn) cols.push({ key: 'meas', label: 'Measurements' });
+    const colCount = cols.length || 1;
+    for (let i = 0; i < spanDays; i++) {
+      const d = addDays(rangeStart, i);
+      const k = fmtKey(d);
+      const isToday = sameDay(d, today);
+      const row = document.createElement('div');
+      row.className = 'cal-list-row';
+      const head = document.createElement('div');
+      head.className = 'cal-list-day-head' + (isToday ? ' today-head' : '');
+      head.innerHTML = '<span>' + DAY_NAMES[d.getDay()] + '</span><span class="cld-date">' + d.getDate() + ' / ' + (d.getMonth()+1) + '</span>';
+      row.appendChild(head);
+      const colsEl = document.createElement('div');
+      colsEl.className = 'cal-list-cols';
+      colsEl.style.setProperty('--col-count', colCount);
+      cols.forEach(function(col) {
+        const colEl = document.createElement('div');
+        colEl.className = 'cal-list-col';
+        colEl.innerHTML = '<div class="cal-list-col-head">' + col.label + '</div>';
+        if (col.key === 'meas') {
+          const dayMeas = meas[k] || [];
+          if (dayMeas.length) {
+            const item = document.createElement('div');
+            item.className = 'cal-list-item kind-meas';
+            item.textContent = dayMeas.length + ' log' + (dayMeas.length > 1 ? 's' : '');
+            colEl.appendChild(item);
+          } else {
+            colEl.innerHTML += '<span class="cal-list-empty">None</span>';
+          }
+        } else {
+          const items = (byDay[k] || []).filter(function(it){ return it.kind === col.key; });
+          if (items.length) {
+            items.forEach(function(it) {
+              const item = document.createElement('div');
+              item.className = 'cal-list-item kind-' + col.key;
+              item.innerHTML = '<b>' + escHtml(it.title || '') + '</b>';
+              const delBtn = document.createElement('button');
+              delBtn.type = 'button'; delBtn.className = 'wk-del'; delBtn.setAttribute('aria-label','Remove'); delBtn.textContent = '\u2715';
+              delBtn.addEventListener('click', function(){ deleteScheduleItem(it.id); });
+              item.appendChild(delBtn);
+              colEl.appendChild(item);
+            });
+          } else {
+            colEl.innerHTML += '<span class="cal-list-empty">None</span>';
+          }
+        }
+        colsEl.appendChild(colEl);
+      });
+      row.appendChild(colsEl);
+      listEl.appendChild(row);
     }
-    if (count) col.classList.add('has-items');
-    if (!count) body.innerHTML = '<span class="wk-empty">â€”</span>';
-    grid.appendChild(col);
+    container.appendChild(listEl);
+  } else {
+    // Grid view: render each week as a 7-col grid
+    const weeksCount = Math.ceil(spanDays / 7);
+    for (let w = 0; w < weeksCount; w++) {
+      const grid = document.createElement('div');
+      grid.className = 'week-grid';
+      for (let i = 0; i < 7; i++) {
+        const dayIdx = w * 7 + i;
+        if (dayIdx >= spanDays) break;
+        const d = addDays(rangeStart, dayIdx);
+        const k = fmtKey(d);
+        const isToday = sameDay(d, today);
+        const col = document.createElement('div');
+        col.className = 'wk-col' + (isToday ? ' today' : '');
+        col.innerHTML = '<div class="wk-head"><span class="wk-dotw">' + DAY_NAMES[d.getDay()] + '</span><span class="wk-date">' + String(d.getDate()) + (d.getMonth() !== rangeStart.getMonth() ? ' <small>' + (d.getMonth()+1) + '/' + d.getFullYear() + '</small>' : '') + '</span><span class="wk-dot"></span></div><div class="wk-body"></div>';
+        const body = col.querySelector('.wk-body');
+        let count = 0;
+        (byDay[k] || []).forEach(function(item) {
+          const kind = item.kind || 'diet';
+          if (!cfg[kind]) return;
+          count++;
+          const cell = document.createElement('div');
+          cell.className = 'wk-item kind-' + kind;
+          cell.innerHTML = scheduleItemSub(item) + '<button type="button" class="wk-del" data-id="' + escHtml(item.id) + '" aria-label="Remove">\u2715</button>';
+          const delBtn = cell.querySelector('.wk-del');
+          if (delBtn) delBtn.addEventListener('click', function(){ deleteScheduleItem(item.id); });
+          body.appendChild(cell);
+        });
+        if (measOn && meas[k] && meas[k].length) {
+          count++;
+          const cell = document.createElement('div');
+          cell.className = 'wk-item kind-meas';
+          cell.innerHTML = '<span class="ci-main"><b>Measurement</b><span>' + meas[k].length + ' log' + (meas[k].length > 1 ? 's' : '') + '</span></span>';
+          body.appendChild(cell);
+        }
+        if (count) col.classList.add('has-items');
+        if (!count) body.innerHTML = '<span class="wk-empty">\u2014</span>';
+        grid.appendChild(col);
+      }
+      container.appendChild(grid);
+      if (w < weeksCount - 1) { const gap = document.createElement('div'); gap.style.height = '10px'; container.appendChild(gap); }
+    }
   }
 }
-
-function measurementEntriesForWeek(rs, re) {
-  const out = {};
-  const entries = normalizeEntries(loadEntries());
-  entries.forEach((en) => {
-    if (en.date >= rs && en.date <= re) {
-      const k = fmtKey(en.date);
-      (out[k] = out[k] || []).push(en);
-    }
-  });
-  return out;
-}
-
-function renderDashboardToday() {
-  const el = document.getElementById('todaySchedule');
-  if (!el) return;
-  const today = new Date();
-  const tKey = fmtKey(today);
-  const byDay = scheduleForWeek(today, today, null);
-  const items = byDay[tKey] || [];
-  if (!items.length) { el.innerHTML = '<p class="ts-empty">Nothing scheduled for today. Head to the Diet, Peptides or Exercise pages to plan your day.</p>'; return; }
-  el.innerHTML = '';
-  items.forEach((item) => {
-    const cell = document.createElement('div');
-    cell.className = 'ts-item kind-' + (item.kind || 'diet');
-    cell.innerHTML = '<span class="ts-chip"></span>' + scheduleItemSub(item);
-    el.appendChild(cell);
-  });
-}
-
-function syncAllWeeks() {
-  syncFormStartDates();
-  if (document.getElementById('calWeekGrid') && !document.getElementById('view-calendar').classList.contains('hidden')) renderCalendarWeek();
-  if (document.getElementById('dietWeekGrid') && !document.getElementById('view-diet').classList.contains('hidden')) { renderScheduleWeek('diet'); renderWeekList('diet'); }
-  if (document.getElementById('pepWeekGrid') && !document.getElementById('view-peptides').classList.contains('hidden')) { renderScheduleWeek('peptide'); renderWeekList('peptide'); }
-  if (document.getElementById('exWeekGrid') && !document.getElementById('view-exercise').classList.contains('hidden')) { renderScheduleWeek('exercise'); renderWeekList('exercise'); }
-  renderDashboardToday();
-}
-
-// Week cursors per page
-let weekCursorKey = fmtKey(new Date());
-function pageWeekCursor() {
-  return { diet: weekCursorKey, peptide: weekCursorKey, exercise: weekCursorKey };
-}
-
-function setWeekCursor(newKey) {
-  weekCursorKey = newKey;
-  ['cal', 'diet', 'pep', 'ex'].forEach((p) => {
-    const picker = document.getElementById(p + 'DatePicker');
-    if (picker && !picker.value) picker.value = newKey;
-    if (picker) picker.value = newKey;
-  });
-  ['diet', 'pep', 'ex', 'cal'].forEach((p) => {
-    const label = document.getElementById(p + 'DateLabel');
-    if (label) {
-      const s = weekStart(keyToDateObj(weekCursorKey));
-      const e = addDays(s, 6);
-      label.textContent = fmtRangeHelper(s,e);
-    }
-  });
-  syncAllWeeks();
-}
-
 function wireWeekNav(prefix) {
   const prev = document.getElementById(prefix + 'Prev');
   const next = document.getElementById(prefix + 'Next');
@@ -2823,8 +2831,7 @@ function wireWeekNav(prefix) {
     const e = addDays(s, 6);
     label.textContent = fmtRangeHelper(s,e);
   }
-}/* â•â•â•â•â•â•â•â•â•â•â•â• SCHEDULE FORM WIDGET â•â•â•â•â•â•â•â•â•â•â•â• */
-// prefix âˆˆ { 'sched' (diet page), 'schedPep', 'schedEx' }
+}/* ==== SCHEDULE FORM WIDGET ==== */// prefix âˆˆ { 'sched' (diet page), 'schedPep', 'schedEx' }
 const SCHED_FIELD_SUFFIX = { sched: '', schedEx: 'Ex', schedPep: 'Pep' };
 function field(prefix, name) {
   const sfx = SCHED_FIELD_SUFFIX[prefix] || '';
@@ -2991,7 +2998,7 @@ function logLibraryToday(libEntry) {
   alert("Added to today's schedule.");
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â• PANEL RENDER + INIT â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ==== PANEL RENDER + INIT ==== */
 function fmtRangeHelper(s,e){return fmtKey(s)+' - '+fmtKey(e);}
 
 function renderScheduleWeek(kind) {
@@ -3059,6 +3066,360 @@ function renderWeekList(kind) {
   el.appendChild(frag);
 }
 
+
+// ==== MEAL LIBRARY ====
+const MEAL_LIBRARY = [
+  { name: 'Overnight Oats', category: 'breakfast', ingredients: 'Oats, almond milk, chia seeds, berries', description: 'High-fibre slow-release breakfast.', instructions: 'Combine oats, milk and chia seeds. Refrigerate overnight. Top with berries.' },
+  { name: 'Grilled Chicken Bowl', category: 'lunch', ingredients: 'Chicken breast, brown rice, broccoli, olive oil', description: 'Lean protein with complex carbs.', instructions: 'Grill chicken. Cook rice. Steam broccoli. Combine.' },
+  { name: 'Salmon & Veg', category: 'dinner', ingredients: 'Salmon fillet, asparagus, lemon, olive oil', description: 'Omega-3 rich dinner.', instructions: 'Pan-fry salmon 4 min each side. Roast asparagus 12 min at 200\u00b0C.' },
+  { name: 'Greek Yoghurt & Honey', category: 'snack', ingredients: 'Greek yoghurt, honey, walnuts', description: 'High protein snack.', instructions: 'Top yoghurt with honey and crushed walnuts.' },
+  { name: 'Protein Shake', category: 'snack', ingredients: 'Whey protein, almond milk, banana', description: 'Post-workout protein boost.', instructions: 'Blend all ingredients until smooth.' },
+  { name: 'Avocado Toast', category: 'breakfast', ingredients: 'Sourdough, avocado, eggs, chilli flakes', description: 'Healthy fats + protein.', instructions: 'Toast bread. Mash avocado. Top with poached eggs.' },
+  { name: 'Beef Stir-fry', category: 'dinner', ingredients: 'Beef strips, mixed veg, soy sauce, sesame oil', description: 'High protein dinner.', instructions: 'Sear beef 3 min. Add veg + sauce. Cook 5 min.' },
+  { name: 'Tuna Rice Bowl', category: 'lunch', ingredients: 'Canned tuna, brown rice, cucumber, soy sauce', description: 'Quick lean lunch.', instructions: 'Mix tuna with soy. Serve over rice with cucumber.' },
+];
+let mealSharedCache = [];
+let mealMyLib = [];
+let mealFavKeys = [];
+let mealFavUndoTimers = {};
+let currentMealType = 'all';
+let currentMealScope = 'shared';
+let mealSearchTerm = '';
+
+function mealCommunity() {
+  return [].concat(MEAL_LIBRARY, mealSharedCache, mealMyLib);
+}
+
+function buildMealCard(entry) {
+  const key = entry.name;
+  const faved = mealFavKeys.indexOf(key) !== -1;
+  const undo = mealFavUndoTimers[key];
+  const card = document.createElement('div');
+  card.className = 'meal-card';
+  card.innerHTML = '<div class="mc-top"><h4>' + escHtml(entry.name) + '</h4>'
+    + '<button type="button" class="meal-fav-toggle' + (faved ? ' faved' : '') + '" data-key="' + escHtml(key) + '" aria-label="' + (faved ? 'Remove from favourites' : 'Add to favourites') + '">' + (faved ? '\u2665' : '\u2661') + '</button></div>'
+    + '<div class="mc-meta"><span class="ec-tag">' + escHtml(entry.category || 'other') + '</span>' + (entry.ingredients ? '<span>' + escHtml(entry.ingredients.split(',').slice(0,3).join(', ')) + '</span>' : '') + '</div>'
+    + (undo ? '<div class="meal-fav-undo">Removing in ' + undo.left + 's <button type="button" class="meal-undo-keep" data-key="' + escHtml(key) + '">Undo</button></div>' : '')
+    + '<button type="button" class="meal-more-info" data-key="' + escHtml(key) + '">more info</button>'
+    + '<div class="meal-day-row" data-key="' + escHtml(key) + '"><span class="meal-day-label">Days</span>'
+    + ['S','M','T','W','T','F','S'].map(function(lbl,i){ return '<button type="button" class="meal-day" data-day="' + i + '">' + lbl + '</button>'; }).join('')
+    + '</div>'
+    + '<button type="button" class="mc-schedule" data-key="' + escHtml(key) + '">Schedule this meal</button>';
+  card.querySelector('.meal-fav-toggle').addEventListener('click', function(ev){ ev.stopPropagation(); toggleMealFav(key); });
+  const undoBtn = card.querySelector('.meal-undo-keep');
+  if (undoBtn) undoBtn.addEventListener('click', function(ev){ ev.stopPropagation(); cancelMealFavUndo(key); });
+  card.querySelector('.meal-more-info').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); openMealInfo(entry); });
+  card.querySelectorAll('.meal-day').forEach(function(b){ b.addEventListener('click', function(ev){ ev.stopPropagation(); b.classList.toggle('on'); }); });
+  const schedBtn = card.querySelector('.mc-schedule');
+  if (schedBtn) schedBtn.addEventListener('click', function(ev){
+    ev.preventDefault(); ev.stopPropagation();
+    const sel = Array.prototype.map.call(card.querySelectorAll('.meal-day.on'), function(b){ return Number(b.getAttribute('data-day')); });
+    if (!sel.length) { alert('Select at least one day first.'); return; }
+    scheduleMealFromCard(entry, sel);
+  });
+  return card;
+}
+
+function scheduleMealFromCard(entry, days) {
+  const titleEl = document.getElementById('schedTitle');
+  if (titleEl) titleEl.value = entry.name || '';
+  const mealSel = document.getElementById('schedMeal');
+  if (mealSel) mealSel.value = entry.category || 'breakfast';
+  const itemsEl = document.getElementById('schedDietItems');
+  if (itemsEl) itemsEl.value = entry.ingredients || '';
+  const startEl = document.getElementById('schedStart');
+  if (startEl && !startEl.value) startEl.value = fmtKey(weekStart(new Date()));
+  document.querySelectorAll('.schedDay').forEach(function(cb){ cb.checked = days.indexOf(Number(cb.value)) !== -1; });
+  // Collapse library, expand scheduler
+  const lib = document.getElementById('mealLibCard');
+  const sched = document.getElementById('dietSchedForm');
+  if (lib && !lib.classList.contains('collapsed')) lib.classList.add('collapsed');
+  if (sched && sched.classList.contains('collapsed')) sched.classList.remove('collapsed');
+  if (sched) sched.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (titleEl) titleEl.focus();
+}
+
+function renderMealLibrary() {
+  const term = mealSearchTerm.toLowerCase();
+  let items = [];
+  if (currentMealScope === 'shared') items = [].concat(MEAL_LIBRARY, mealSharedCache);
+  else if (currentMealScope === 'mine') items = mealMyLib.slice();
+  else if (currentMealScope === 'favs') items = mealCommunity().filter(function(m){ return mealFavKeys.indexOf(m.name) !== -1; });
+  if (currentMealType !== 'all') items = items.filter(function(m){ return m.category === currentMealType; });
+  if (term) items = items.filter(function(m){ return m.name.toLowerCase().includes(term) || (m.ingredients||'').toLowerCase().includes(term); });
+  const grid = document.getElementById('mealLibrary');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!items.length) { grid.innerHTML = '<div class="ex-empty">No meals found.</div>'; }
+  else { items.forEach(function(m){ grid.appendChild(buildMealCard(m)); }); }
+  renderMealFavs();
+  const countEl = document.getElementById('mealLibCount');
+  if (countEl) countEl.textContent = mealCommunity().length + ' meals';
+}
+
+function renderMealFavs() {
+  const sec = document.getElementById('mealFavSection');
+  if (!sec) return;
+  if (!mealFavKeys.length) { sec.innerHTML = ''; return; }
+  const favItems = mealCommunity().filter(function(m){ return mealFavKeys.indexOf(m.name) !== -1; });
+  if (!favItems.length) { sec.innerHTML = ''; return; }
+  sec.innerHTML = '<div class="meal-fav-title">Favourites</div>';
+  const g = document.createElement('div'); g.className = 'meal-library';
+  favItems.forEach(function(m){ g.appendChild(buildMealCard(m)); });
+  sec.appendChild(g);
+}
+
+function toggleMealFav(key) {
+  const idx = mealFavKeys.indexOf(key);
+  if (idx === -1) { mealFavKeys.push(key); persistMealFavs(); renderMealLibrary(); return; }
+  startMealFavUndo(key);
+}
+function startMealFavUndo(key) {
+  if (mealFavUndoTimers[key]) clearInterval(mealFavUndoTimers[key].timer);
+  mealFavUndoTimers[key] = { left: 5, timer: null };
+  mealFavUndoTimers[key].timer = setInterval(function(){
+    mealFavUndoTimers[key].left -= 1;
+    if (mealFavUndoTimers[key].left <= 0) removeMealFavAndReflow(key);
+    else renderMealLibrary();
+  }, 1000);
+  renderMealLibrary();
+}
+function removeMealFavAndReflow(key) {
+  clearInterval(mealFavUndoTimers[key].timer);
+  delete mealFavUndoTimers[key];
+  const idx = mealFavKeys.indexOf(key); if (idx !== -1) mealFavKeys.splice(idx,1);
+  persistMealFavs(); renderMealLibrary();
+}
+function cancelMealFavUndo(key) {
+  if (mealFavUndoTimers[key]) { clearInterval(mealFavUndoTimers[key].timer); delete mealFavUndoTimers[key]; }
+  renderMealLibrary();
+}
+function persistMealFavs() { try { localStorage.setItem('ht_meal_favs', JSON.stringify(mealFavKeys)); } catch(e){} }
+function loadMealFavs() { try { mealFavKeys = JSON.parse(localStorage.getItem('ht_meal_favs') || '[]'); } catch(e){ mealFavKeys=[]; } }
+function persistMyMeals() { try { localStorage.setItem('ht_my_meals', JSON.stringify(mealMyLib)); } catch(e){} }
+function loadMyMeals() { try { mealMyLib = JSON.parse(localStorage.getItem('ht_my_meals') || '[]'); } catch(e){ mealMyLib=[]; } }
+
+function openMealInfo(entry) {
+  const bd = document.getElementById('exInfoBackdrop'); if (!bd) return;
+  const titleEl = document.getElementById('exInfoTitle'); if (titleEl) titleEl.textContent = entry.name || 'Meal';
+  const meta = document.getElementById('exInfoMeta');
+  if (meta) meta.innerHTML = '<span class="ec-tag">' + escHtml(entry.category||'other') + '</span>';
+  const purpose = document.getElementById('exInfoPurpose');
+  if (purpose) purpose.textContent = (entry.ingredients ? 'Ingredients: ' + entry.ingredients + '\n\n' : '') + (entry.description||'No description yet.');
+  const howto = document.getElementById('exInfoHowto');
+  if (howto) howto.textContent = entry.instructions || 'No instructions yet.';
+  ['exImgSlot0','exImgSlot1','exImgSlot2'].forEach(function(id){ const el=document.getElementById(id); if(el) el.textContent='Image coming soon'; });
+  bd.classList.remove('hidden');
+}
+
+function wireMealLibrary() {
+  const search = document.getElementById('mealSearch');
+  if (search) search.addEventListener('input', function(){ mealSearchTerm = search.value; renderMealLibrary(); });
+  document.querySelectorAll('[data-mcat]').forEach(function(b){
+    b.addEventListener('click', function(){
+      currentMealType = b.getAttribute('data-mcat');
+      document.querySelectorAll('[data-mcat]').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active'); renderMealLibrary();
+    });
+  });
+  document.querySelectorAll('[data-mscope]').forEach(function(b){
+    b.addEventListener('click', function(){
+      currentMealScope = b.getAttribute('data-mscope');
+      document.querySelectorAll('[data-mscope]').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active'); renderMealLibrary();
+    });
+  });
+}
+
+function wireMealModal() {
+  const bd = document.getElementById('mealModalBackdrop');
+  const addBtn = document.getElementById('mealAddBtn');
+  const closeBtn = document.getElementById('mealModalClose');
+  const cancelBtn = document.getElementById('mealModalCancel');
+  const saveBtn = document.getElementById('mealModalSave');
+  function openMealModal(){ if(bd) bd.classList.remove('hidden'); }
+  function closeMealModal(){ if(bd) bd.classList.add('hidden'); }
+  if (addBtn) addBtn.addEventListener('click', openMealModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeMealModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeMealModal);
+  if (bd) bd.addEventListener('click', function(ev){ if(ev.target===bd) closeMealModal(); });
+  if (saveBtn) saveBtn.addEventListener('click', function(){
+    const name = (document.getElementById('mealNewName')||{}).value || '';
+    if (!name.trim()) { alert('Name required.'); return; }
+    const entry = {
+      name: name.trim(),
+      category: (document.getElementById('mealNewCategory')||{}).value || 'other',
+      ingredients: (document.getElementById('mealNewIngredients')||{}).value || '',
+      description: (document.getElementById('mealNewDescription')||{}).value || '',
+      instructions: (document.getElementById('mealNewInstructions')||{}).value || '',
+    };
+    mealMyLib.push(entry); persistMyMeals(); closeMealModal(); renderMealLibrary();
+  });
+}
+
+// ==== MY DATA ====
+function initMyData() {
+  const startInput = document.getElementById('pdfStartDate');
+  if (startInput && !startInput.value) startInput.value = fmtKey(weekStart(new Date()));
+  const csvBtn = document.getElementById('exportCsvBtn');
+  const jsonBtn = document.getElementById('exportJsonBtn');
+  const pdfBtn = document.getElementById('generatePdfBtn');
+  if (csvBtn) csvBtn.addEventListener('click', exportCsv);
+  if (jsonBtn) jsonBtn.addEventListener('click', exportJson);
+  if (pdfBtn) pdfBtn.addEventListener('click', generatePdf);
+}
+
+function getExportData() {
+  const inc = {
+    measurements: !!(document.getElementById('expMeasurements')||{}).checked,
+    schedule: !!(document.getElementById('expSchedule')||{}).checked,
+    meals: !!(document.getElementById('expMeals')||{}).checked,
+    exercises: !!(document.getElementById('expExercises')||{}).checked,
+    peptides: !!(document.getElementById('expPeptides')||{}).checked,
+  };
+  const data = {};
+  try {
+    if (inc.measurements) data.measurements = JSON.parse(localStorage.getItem('ht_entries') || '[]');
+    if (inc.schedule) data.schedule = loadSchedule();
+    if (inc.meals) data.meals = [].concat(MEAL_LIBRARY, mealMyLib);
+    if (inc.exercises) data.exercises = EXERCISE_LIBRARY;
+    if (inc.peptides) data.peptides = loadPeptides();
+  } catch(e){ console.error('export error', e); }
+  return data;
+}
+
+function exportJson() {
+  const data = getExportData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, 'healthtracker-' + fmtKey(new Date()) + '.json');
+}
+
+function exportCsv() {
+  const data = getExportData();
+  let csv = '';
+  if (data.measurements && data.measurements.length) {
+    csv += 'MEASUREMENTS\n';
+    const keys = Object.keys(data.measurements[0] || {});
+    csv += keys.join(',') + '\n';
+    data.measurements.forEach(function(r){ csv += keys.map(function(k){ return JSON.stringify(r[k]!=null?r[k]:''); }).join(',') + '\n'; });
+    csv += '\n';
+  }
+  if (data.schedule && data.schedule.length) {
+    csv += 'SCHEDULE\n';
+    csv += 'id,kind,title,date,freq\n';
+    data.schedule.forEach(function(r){ csv += [r.id,r.kind,r.title,r.date,(r.r&&r.r.freq)||'once'].map(function(v){ return JSON.stringify(v||''); }).join(',') + '\n'; });
+    csv += '\n';
+  }
+  if (!csv) csv = 'No data selected.\n';
+  downloadBlob(new Blob([csv], { type: 'text/csv' }), 'healthtracker-' + fmtKey(new Date()) + '.csv');
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+}
+
+function generatePdf() {
+  const startVal = (document.getElementById('pdfStartDate')||{}).value;
+  const period = (document.getElementById('pdfPeriod')||{}).value || 'week';
+  const start = startVal ? new Date(startVal + 'T00:00:00') : weekStart(new Date());
+  const spanDays = period === 'week' ? 7 : period === 'fortnight' ? 14 : 30;
+  const end = addDays(start, spanDays - 1);
+  const incCal = !!(document.getElementById('pdfCalendar')||{}).checked;
+  const incGraph = !!(document.getElementById('pdfGraph')||{}).checked;
+  const incGoals = !!(document.getElementById('pdfGoals')||{}).checked;
+  const incMeals = !!(document.getElementById('pdfMealSummary')||{}).checked;
+  const incEx = !!(document.getElementById('pdfExSummary')||{}).checked;
+  const incPep = !!(document.getElementById('pdfPepSummary')||{}).checked;
+  const schedule = loadSchedule();
+  const peptides = loadPeptides();
+  const DNAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let h = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>HealthTracker Report</title><style>';
+  h += 'body{font-family:Arial,sans-serif;font-size:13px;color:#111;padding:24px;max-width:900px;margin:0 auto}';
+  h += 'h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:20px 0 8px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e0e0e0;padding-bottom:4px}';
+  h += 'table{width:100%;border-collapse:collapse;margin-bottom:16px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;font-size:12px}th{background:#f4f4f4;font-weight:700}';
+  h += '.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}';
+  h += '.cal-cell{border:1px solid #ddd;border-radius:4px;padding:6px;min-height:60px;font-size:11px}';
+  h += '.day-head{font-weight:700;font-size:10px;text-transform:uppercase;color:#888;margin-bottom:4px}';
+  h += '.ci{padding:2px 4px;border-radius:3px;margin-bottom:2px;font-size:11px}';
+  h += '.ci.d{background:#fff3e0;border-left:3px solid #ff9d5c}.ci.e{background:#e0f7fa;border-left:3px solid #22d3ee}.ci.p{background:#fce4ec;border-left:3px solid #f2186b}';
+  h += '@media print{@page{margin:16mm}}';
+  h += '</style></head><body>';
+  h += '<h1>HealthTracker Report</h1>';
+  h += '<p style="color:#666;font-size:12px">Period: ' + fmtKey(start) + ' \u2013 ' + fmtKey(end) + ' (' + period + ')</p>';
+  if (incGoals) {
+    try {
+      const profile = JSON.parse(localStorage.getItem('ht_profile') || '{}');
+      const goals = JSON.parse(localStorage.getItem('ht_goals') || '[]');
+      if (profile.name || goals.length) {
+        h += '<h2>Profile &amp; Goals</h2>';
+        if (profile.name) h += '<p><strong>' + escHtml(profile.name) + '</strong>' + (profile.age ? ' &mdash; Age ' + profile.age : '') + '</p>';
+        if (goals.length) {
+          h += '<table><thead><tr><th>Goal</th><th>Target</th><th>Unit</th></tr></thead><tbody>';
+          goals.forEach(function(g){ h += '<tr><td>' + escHtml(g.label||'') + '</td><td>' + escHtml(String(g.target||'')) + '</td><td>' + escHtml(g.unit||'') + '</td></tr>'; });
+          h += '</tbody></table>';
+        }
+      }
+    } catch(e){}
+  }
+  if (incCal) {
+    h += '<h2>Calendar Schedule</h2><div class="cal-grid">';
+    for (var di = 0; di < spanDays; di++) {
+      const d = addDays(start, di);
+      const k = fmtKey(d);
+      const items = (scheduleForWeek(weekStart(d), weekEnd(weekStart(d)), null)[k] || []);
+      h += '<div class="cal-cell"><div class="day-head">' + DNAMES[d.getDay()] + ' ' + d.getDate() + '</div>';
+      items.forEach(function(it){ const cls = it.kind==='diet'?'d':it.kind==='exercise'?'e':'p'; h += '<div class="ci ' + cls + '">' + escHtml(it.title||'') + '</div>'; });
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  if (incGraph) {
+    try {
+      const entries = JSON.parse(localStorage.getItem('ht_entries') || '[]');
+      const sk = fmtKey(start); const ek = fmtKey(end);
+      const inRange = entries.filter(function(e){ return e.date >= sk && e.date <= ek; });
+      if (inRange.length) {
+        h += '<h2>Measurements</h2><table><thead><tr><th>Date</th><th>Note</th></tr></thead><tbody>';
+        inRange.forEach(function(e){ h += '<tr><td>' + escHtml(e.date||'') + '</td><td>' + escHtml(e.notes||'') + '</td></tr>'; });
+        h += '</tbody></table>';
+      }
+    } catch(e){}
+  }
+  if (incMeals) {
+    h += '<h2>Meal Summary</h2>';
+    const mi = schedule.filter(function(it){ return it.kind==='diet'; });
+    if (mi.length) {
+      h += '<table><thead><tr><th>Title</th><th>Type</th><th>Frequency</th></tr></thead><tbody>';
+      mi.forEach(function(it){ h += '<tr><td>' + escHtml(it.title||'') + '</td><td>' + escHtml((it.meta&&it.meta.meal)||'') + '</td><td>' + escHtml((it.r&&it.r.freq)||'once') + '</td></tr>'; });
+      h += '</tbody></table>';
+    } else { h += '<p style="color:#888">No meals scheduled.</p>'; }
+  }
+  if (incEx) {
+    h += '<h2>Exercise Summary</h2>';
+    const ei = schedule.filter(function(it){ return it.kind==='exercise'; });
+    if (ei.length) {
+      h += '<table><thead><tr><th>Title</th><th>Activity</th><th>Sets</th><th>Reps</th></tr></thead><tbody>';
+      ei.forEach(function(it){ h += '<tr><td>' + escHtml(it.title||'') + '</td><td>' + escHtml((it.meta&&it.meta.activity)||'') + '</td><td>' + escHtml(String((it.meta&&it.meta.sets)||'')) + '</td><td>' + escHtml(String((it.meta&&it.meta.reps)||'')) + '</td></tr>'; });
+      h += '</tbody></table>';
+    } else { h += '<p style="color:#888">No exercises scheduled.</p>'; }
+  }
+  if (incPep) {
+    h += '<h2>Peptide Summary</h2>';
+    if (peptides && peptides.length) {
+      h += '<table><thead><tr><th>Compound</th><th>Dose</th><th>Notes</th></tr></thead><tbody>';
+      peptides.forEach(function(p){ h += '<tr><td>' + escHtml(p.name||'') + '</td><td>' + escHtml(p.dose||'') + '</td><td>' + escHtml(p.notes||'') + '</td></tr>'; });
+      h += '</tbody></table>';
+    } else { h += '<p style="color:#888">No peptides in protocol.</p>'; }
+  }
+  h += '</body></html>';
+  const win = window.open('', '_blank', 'width=950,height=720');
+  if (win) { win.document.write(h); win.document.close(); setTimeout(function(){ win.print(); }, 500); }
+}
+
 function initSchedule() {
   // wire week nav
   ['cal', 'diet', 'pep', 'ex'].forEach(wireWeekNav);
@@ -3100,6 +3461,12 @@ function initSchedule() {
   wireExerciseModal();
   wireInfoModal();
   wireConfirmModal();
+  wireMealLibrary();
+  wireMealModal();
+  loadMealFavs();
+  loadMyMeals();
+  renderMealLibrary();
+  initMyData();
   loadExFavs();
   loadMyLibrary();
   loadSharedExercises();
@@ -3118,6 +3485,23 @@ function initSchedule() {
     if (label) { const s = weekStart(new Date()); const e = addDays(s, 6); label.textContent = fmtRangeHelper(s,e); }
   });
   syncAllWeeks();
+  // Calendar format controls
+  document.querySelectorAll('[data-calspan]').forEach(function(b){
+    b.addEventListener('click', function(){
+      calSpan = b.getAttribute('data-calspan');
+      document.querySelectorAll('[data-calspan]').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      renderCalendarWeek();
+    });
+  });
+  document.querySelectorAll('[data-calview]').forEach(function(b){
+    b.addEventListener('click', function(){
+      calViewMode = b.getAttribute('data-calview');
+      document.querySelectorAll('[data-calview]').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      renderCalendarWeek();
+    });
+  });
   showView('dashboard');
 }
 

@@ -280,3 +280,29 @@
 }/* Show day-indicator dot only on cells that have scheduled content */
 .wk-col .wk-dot{display:none}
 .wk-col.has-items .wk-dot{display:inline-block}
+
+/* ---- Exercise card: day buttons + schedule ---- */
+.ex-day-row{display:flex;align-items:center;gap:5px;margin-top:10px;flex-wrap:wrap}
+.ex-day-label{font:600 10px var(--font-mono);text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-right:2px}
+.ex-day{width:26px;height:26px;border:1px solid var(--line);border-radius:3px;background:#0d1218;color:#aeb6c0;font:700 11px var(--font-display);cursor:pointer;line-height:1}
+.ex-day.on{background:var(--pink);border-color:var(--pink);color:#fff}
+.ec-schedule{width:100%;margin-top:8px;background:#d10f56;border:1px solid #e23a74;color:#fff;font:700 12px var(--font-display);letter-spacing:.6px;text-transform:uppercase;border-radius:3px;padding:9px;cursor:pointer}
+.ec-schedule:hover{background:#f2186b}
+.ex-more-info{display:inline-block;margin-top:10px;font:600 11px var(--font-mono);letter-spacing:.5px;text-transform:uppercase;color:var(--pink-light);cursor:pointer;background:none;border:0;padding:0;text-align:left}
+
+/* ---- Exercise info modal ---- */
+.ex-info-modal{width:min(640px,100%)}
+.ex-info-meta{display:flex;gap:10px;flex-wrap:wrap;font:600 12px var(--font-mono);color:var(--muted)}
+.ex-info-section{margin-top:6px}
+.ex-info-section h4{font:700 11px var(--font-display);letter-spacing:.6px;text-transform:uppercase;color:var(--pink-light);margin:0 0 4px}
+.ex-info-section p{font-size:13px;line-height:1.6;color:#d6dae0;margin:0;white-space:pre-wrap}
+.ex-info-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.ex-info-img{aspect-ratio:1;border:1px dashed var(--line);border-radius:4px;background:rgba(10,14,19,.4);color:#5b6470;font:500 10px var(--font-mono);letter-spacing:.3px;text-transform:uppercase;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px}
+
+/* ---- Confirm modal ---- */
+.confirm-modal{width:min(380px,100%)}
+.confirm-modal .ex-modal-body{padding-bottom:6px}
+.confirm-modal p{font-size:14px;color:#dfe3e8;margin:0;line-height:1.5}
+.ex-confirm-btn{border:1px solid var(--line);background:#0d1218;color:#dfe3e8;font:700 12px var(--font-display);letter-spacing:.4px;text-transform:uppercase;border-radius:3px;padding:8px 14px;cursor:pointer}
+.ex-confirm-btn.danger{background:var(--pink);border-color:var(--pink);color:#fff}
+.ex-confirm-btn:hover{border-color:#e23a74;color:#fff}

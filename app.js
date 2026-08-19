@@ -1985,19 +1985,90 @@ function buildExerciseCard(entry) {
     + '<button type="button" class="ex-fav-toggle' + (faved ? ' faved' : '') + '" data-key="' + escHtml(key) + '" aria-label="' + (faved ? 'Remove from favourites' : 'Add to favourites') + '">' + (faved ? '♥' : '♡') + '</button></div>'
     + '<div class="ec-meta"><span class="ec-tag">' + escHtml(ACTIVITY_LABELS[entry.activity] || entry.activity || 'Other') + '</span><span>Sets ' + (entry.sets || 0) + '</span><span>Reps ' + (entry.reps || 0) + '</span></div>'
     + (undo ? '<div class="ex-fav-undo">Removing in ' + undo.left + 's <button type="button" class="ex-undo-keep" data-key="' + escHtml(key) + '">Undo</button></div>' : '')
-    + '<a href="#" class="ex-more-info" data-key="' + escHtml(key) + '">more info</a>'
-    + '<div class="ex-detail hidden" data-detail="' + escHtml(key) + '"><strong>Purpose</strong>' + escHtml(entry.description || 'No description added yet.') + '<strong>How to perform</strong>' + escHtml(entry.howto || 'No instructions added yet.') + '</div>'
-    + '<button type="button" class="ec-add">Log for today</button>';
+    + '<button type="button" class="ex-more-info" data-key="' + escHtml(key) + '">more info</button>'
+    + '<div class="ex-day-row" data-key="' + escHtml(key) + '" aria-label="Days of the week"><span class="ex-day-label">Days</span>'
+    + ['S','M','T','W','T','F','S'].map(function (lbl, i) { return '<button type="button" class="ex-day" data-day="' + i + '" aria-label="' + lbl + '">' + lbl + '</button>'; }).join('')
+    + '</div>'
+    + '<button type="button" class="ec-schedule" data-key="' + escHtml(key) + '">Schedule this workout</button>';
 
   card.querySelector('.ex-fav-toggle').addEventListener('click', (ev) => { ev.stopPropagation(); toggleFavourite(key); });
   const undoBtn = card.querySelector('.ex-undo-keep');
   if (undoBtn) undoBtn.addEventListener('click', (ev) => { ev.stopPropagation(); cancelFavUndo(key); });
-  card.querySelector('.ex-more-info').addEventListener('click', (ev) => {
+  card.querySelector('.ex-more-info').addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); openExerciseInfo(entry); });
+  card.querySelectorAll('.ex-day').forEach(function (b) { b.addEventListener('click', (ev) => { ev.stopPropagation(); b.classList.toggle('on'); }); });
+  const schedBtn = card.querySelector('.ec-schedule');
+  if (schedBtn) schedBtn.addEventListener('click', (ev) => {
     ev.preventDefault(); ev.stopPropagation();
-    const d = card.querySelector('.ex-detail'); if (d) d.classList.toggle('hidden');
+    const sel = Array.prototype.map.call(card.querySelectorAll('.ex-day.on'), function (b) { return Number(b.getAttribute('data-day')); });
+    if (!sel.length) { alert('Select at least one day, then click Schedule.'); return; }
+    scheduleExerciseFromCard(entry, sel);
   });
-  card.querySelector('.ec-add').addEventListener('click', () => logLibraryToday(entry));
   return card;
+}
+
+// "Schedule this workout": prefill the Exercise schedule form (title/activity/sets/reps
+// + the chosen day checkboxes), then scroll the user to the form so they can finish and Add.
+// `days` are 0..6 (Sun..Sat), matching Date.getDay().
+function scheduleExerciseFromCard(entry, days) {
+  setSchedVal('Title', 'Ex', entry.name || '');
+  setSchedVal('ExActivity', 'Ex', entry.activity || 'other');
+  setSchedVal('ExSets', 'Ex', entry.sets || 0);
+  setSchedVal('ExReps', 'Ex', entry.reps || 0);
+  const startEl = document.getElementById('schedStartEx');
+  if (startEl && !startEl.value) startEl.value = fmtKey(weekStart(new Date()));
+  document.querySelectorAll('.schedDayEx').forEach(function (cb) { cb.checked = days.indexOf(Number(cb.value)) !== -1; });
+  const form = document.querySelector('#view-exercise .sched-form');
+  if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const titleEl = document.getElementById('schedTitleEx');
+  if (titleEl) titleEl.focus();
+}
+function setSchedVal(name, sfx, val) {
+  const el = document.getElementById('sched' + name + sfx);
+  if (el) el.value = val;
+}
+
+// ---- Exercise info modal (purpose + how-to + up to 3 future image slots) ----
+function openExerciseInfo(entry) {
+  const bd = document.getElementById('exInfoBackdrop'); if (!bd) return;
+  document.getElementById('exInfoTitle').textContent = entry.name || 'Exercise';
+  const meta = document.getElementById('exInfoMeta');
+  if (meta) {
+    meta.innerHTML = '<span class="ec-tag">' + escHtml(ACTIVITY_LABELS[entry.activity] || entry.activity || 'Other') + '</span>'
+      + '<span>Sets ' + (entry.sets || 0) + '</span><span>Reps ' + (entry.reps || 0) + '</span>';
+  }
+  const purpose = document.getElementById('exInfoPurpose'); if (purpose) purpose.textContent = entry.description || 'No description added yet.';
+  const howto = document.getElementById('exInfoHowto'); if (howto) howto.textContent = entry.howto || 'No instructions added yet.';
+  ['exImgSlot0', 'exImgSlot1', 'exImgSlot2'].forEach(function (id) { const el = document.getElementById(id); if (el) el.textContent = 'Image coming soon'; });
+  bd.classList.remove('hidden');
+}
+function closeExerciseInfo() { const bd = document.getElementById('exInfoBackdrop'); if (bd) bd.classList.add('hidden'); }
+
+// ---- Reusable confirm modal (used by schedule deletes) ----
+let confirmCb = null;
+function openConfirm(message, onOk) {
+  const bd = document.getElementById('confirmBackdrop');
+  if (!bd) { if (window.confirm(message)) onOk(); return; }
+  const msg = document.getElementById('confirmMsg'); if (msg) msg.textContent = message;
+  confirmCb = onOk;
+  bd.classList.remove('hidden');
+}
+function closeConfirm() { const bd = document.getElementById('confirmBackdrop'); if (bd) bd.classList.add('hidden'); confirmCb = null; }
+function wireConfirmModal() {
+  const ok = document.getElementById('confirmOk');
+  const cancel = document.getElementById('confirmCancel');
+  const close = document.getElementById('confirmClose');
+  const bd = document.getElementById('confirmBackdrop');
+  if (ok) ok.addEventListener('click', function () { const cb = confirmCb; closeConfirm(); if (cb) cb(); });
+  if (cancel) cancel.addEventListener('click', closeConfirm);
+  if (close) close.addEventListener('click', closeConfirm);
+  if (bd) bd.addEventListener('click', function (ev) { if (ev.target === bd) closeConfirm(); });
+}
+function wireInfoModal() {
+  const close = document.getElementById('exInfoClose');
+  const bd = document.getElementById('exInfoBackdrop');
+  if (close) close.addEventListener('click', closeExerciseInfo);
+  if (bd) bd.addEventListener('click', function (ev) { if (ev.target === bd) closeExerciseInfo(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeExerciseInfo(); closeConfirm(); } });
 }
 
 // Favourites section pinned above the list. Un-favouriting starts a per-card countdown;
@@ -2612,9 +2683,10 @@ function renderWeekGrid(gridEl, filterKind, startDay) {
 }
 
 function deleteScheduleItem(id) {
-  if (!confirm('Remove this scheduled item?')) return;
-  saveSchedule(loadSchedule().filter((it) => it.id !== id));
-  syncAllWeeks();
+  openConfirm('Delete this scheduled item?', function () {
+    saveSchedule(loadSchedule().filter((it) => it.id !== id));
+    syncAllWeeks();
+  });
 }
 
 function renderCalendarWeek() {
@@ -2656,7 +2728,9 @@ function renderCalendarWeek() {
       count += 1;
       const cell = document.createElement('div');
       cell.className = 'wk-item kind-' + kind;
-      cell.innerHTML = scheduleItemSub(item);
+      cell.innerHTML = scheduleItemSub(item) + '<button type="button" class="wk-del" data-id="' + escHtml(item.id) + '" aria-label="Remove">×</button>';
+      const delBtn = cell.querySelector('.wk-del');
+      if (delBtn) delBtn.addEventListener('click', function () { deleteScheduleItem(item.id); });
       body.appendChild(cell);
     });
     if (measOn && meas[k] && meas[k].length) {
@@ -2751,7 +2825,11 @@ function wireWeekNav(prefix) {
   }
 }/* â•â•â•â•â•â•â•â•â•â•â•â• SCHEDULE FORM WIDGET â•â•â•â•â•â•â•â•â•â•â•â• */
 // prefix âˆˆ { 'sched' (diet page), 'schedPep', 'schedEx' }
-function field(prefix, name) { return document.getElementById(prefix + name); }
+const SCHED_FIELD_SUFFIX = { sched: '', schedEx: 'Ex', schedPep: 'Pep' };
+function field(prefix, name) {
+  const sfx = SCHED_FIELD_SUFFIX[prefix] || '';
+  return document.getElementById('sched' + name + sfx);
+}
 
 function populateSchedPeptideSelects() {
   const profile = loadPeptides();
@@ -3020,6 +3098,8 @@ function initSchedule() {
     });
   });
   wireExerciseModal();
+  wireInfoModal();
+  wireConfirmModal();
   loadExFavs();
   loadMyLibrary();
   loadSharedExercises();

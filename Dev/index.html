@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -357,13 +357,13 @@
         <div class="sched-days">
           <span>On these days</span>
           <div class="days-check">
-            <label><input type="checkbox" class="schedDay" value="1" /> Sun</label>
-            <label><input type="checkbox" class="schedDay" value="2" /> Mon</label>
-            <label><input type="checkbox" class="schedDay" value="3" /> Tue</label>
-            <label><input type="checkbox" class="schedDay" value="4" /> Wed</label>
-            <label><input type="checkbox" class="schedDay" value="5" /> Thu</label>
-            <label><input type="checkbox" class="schedDay" value="6" /> Fri</label>
-            <label><input type="checkbox" class="schedDay" value="0" /> Sat</label>
+            <label><input type="checkbox" class="schedDay" value="0" /> Sun</label>
+            <label><input type="checkbox" class="schedDay" value="1" /> Mon</label>
+            <label><input type="checkbox" class="schedDay" value="2" /> Tue</label>
+            <label><input type="checkbox" class="schedDay" value="3" /> Wed</label>
+            <label><input type="checkbox" class="schedDay" value="4" /> Thu</label>
+            <label><input type="checkbox" class="schedDay" value="5" /> Fri</label>
+            <label><input type="checkbox" class="schedDay" value="6" /> Sat</label>
           </div>
         </div>
         <div class="sched-end">
@@ -465,13 +465,13 @@
         <div class="sched-days">
           <span>On these days</span>
           <div class="days-check">
-            <label><input type="checkbox" class="schedDayPep" value="1" /> Sun</label>
-            <label><input type="checkbox" class="schedDayPep" value="2" /> Mon</label>
-            <label><input type="checkbox" class="schedDayPep" value="3" /> Tue</label>
-            <label><input type="checkbox" class="schedDayPep" value="4" /> Wed</label>
-            <label><input type="checkbox" class="schedDayPep" value="5" /> Thu</label>
-            <label><input type="checkbox" class="schedDayPep" value="6" /> Fri</label>
-            <label><input type="checkbox" class="schedDayPep" value="0" /> Sat</label>
+            <label><input type="checkbox" class="schedDayPep" value="0" /> Sun</label>
+            <label><input type="checkbox" class="schedDayPep" value="1" /> Mon</label>
+            <label><input type="checkbox" class="schedDayPep" value="2" /> Tue</label>
+            <label><input type="checkbox" class="schedDayPep" value="3" /> Wed</label>
+            <label><input type="checkbox" class="schedDayPep" value="4" /> Thu</label>
+            <label><input type="checkbox" class="schedDayPep" value="5" /> Fri</label>
+            <label><input type="checkbox" class="schedDayPep" value="6" /> Sat</label>
           </div>
         </div>
         <div class="sched-end">
@@ -579,13 +579,13 @@
         <div class="sched-days">
           <span>On these days</span>
           <div class="days-check">
-            <label><input type="checkbox" class="schedDayEx" value="1" /> Sun</label>
-            <label><input type="checkbox" class="schedDayEx" value="2" /> Mon</label>
-            <label><input type="checkbox" class="schedDayEx" value="3" /> Tue</label>
-            <label><input type="checkbox" class="schedDayEx" value="4" /> Wed</label>
-            <label><input type="checkbox" class="schedDayEx" value="5" /> Thu</label>
-            <label><input type="checkbox" class="schedDayEx" value="6" /> Fri</label>
-            <label><input type="checkbox" class="schedDayEx" value="0" /> Sat</label>
+            <label><input type="checkbox" class="schedDayEx" value="0" /> Sun</label>
+            <label><input type="checkbox" class="schedDayEx" value="1" /> Mon</label>
+            <label><input type="checkbox" class="schedDayEx" value="2" /> Tue</label>
+            <label><input type="checkbox" class="schedDayEx" value="3" /> Wed</label>
+            <label><input type="checkbox" class="schedDayEx" value="4" /> Thu</label>
+            <label><input type="checkbox" class="schedDayEx" value="5" /> Fri</label>
+            <label><input type="checkbox" class="schedDayEx" value="6" /> Sat</label>
           </div>
         </div>
         <div class="sched-end">
@@ -658,5 +658,32 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
+
+  <div class="ex-modal-backdrop hidden" id="exInfoBackdrop">
+    <div class="ex-modal ex-info-modal" role="dialog" aria-modal="true" aria-labelledby="exInfoTitle">
+      <div class="ex-modal-head"><h3 id="exInfoTitle">Exercise info</h3><button type="button" class="ex-modal-close" id="exInfoClose" aria-label="Close">×</button></div>
+      <div class="ex-modal-body">
+        <div class="ex-info-meta" id="exInfoMeta"></div>
+        <div class="ex-info-section"><h4>Purpose</h4><p id="exInfoPurpose"></p></div>
+        <div class="ex-info-section"><h4>How to perform</h4><p id="exInfoHowto"></p></div>
+        <div class="ex-info-gallery">
+          <div class="ex-info-img" id="exImgSlot0"></div>
+          <div class="ex-info-img" id="exImgSlot1"></div>
+          <div class="ex-info-img" id="exImgSlot2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ex-modal-backdrop hidden" id="confirmBackdrop">
+    <div class="ex-modal confirm-modal" role="alertdialog" aria-modal="true">
+      <div class="ex-modal-head"><h3>Confirm</h3><button type="button" class="ex-modal-close" id="confirmClose" aria-label="Close">×</button></div>
+      <div class="ex-modal-body"><p id="confirmMsg"></p></div>
+      <div class="ex-modal-actions">
+        <button type="button" class="ex-confirm-btn" id="confirmCancel">Cancel</button>
+        <button type="button" class="ex-confirm-btn danger" id="confirmOk">Delete</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

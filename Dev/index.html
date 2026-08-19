@@ -49,7 +49,6 @@
       <button type="button" class="nav-link" data-view="diet">Diet</button>
       <button type="button" class="nav-link" data-view="peptides">Peptides</button>
       <button type="button" class="nav-link" data-view="exercise">Exercise</button>
-      <button type="button" class="nav-link" data-view="mydata">My Data</button>
     </nav>
 
     <!-- ── Dashboard ── -->
@@ -284,16 +283,7 @@
         <label class="wk-toggle"><input type="checkbox" id="calToggleExercise" checked /> Exercise</label>
         <label class="wk-toggle"><input type="checkbox" id="calToggleMeas" /> Measurements</label>
       </div>
-      <div class="cal-format-bar">
-        <span>Span</span>
-        <button type="button" class="cal-fmt-pill active" data-calspan="week">Week</button>
-        <button type="button" class="cal-fmt-pill" data-calspan="fortnight">Fortnight</button>
-        <button type="button" class="cal-fmt-pill" data-calspan="month">Month</button>
-        <span style="margin-left:8px">View</span>
-        <button type="button" class="cal-fmt-pill active" data-calview="grid">Grid</button>
-        <button type="button" class="cal-fmt-pill" data-calview="list">List</button>
-      </div>
-      <div id="calContainer"></div>
+      <div class="week-grid" id="calWeekGrid"></div>
     </section>
 
     <!-- ── Diet ── -->
@@ -304,7 +294,7 @@
           <p>Schedule meals — morning, lunch, dinner, snacks and alcohol.</p>
         </div>
       </div>
-      <div class="sched-form card collapsible collapsed sched-form-collapsible" id="dietSchedForm"><button type="button" class="collapse-head"><span class="collapse-label">Add a meal</span><span class="collapse-side"><span class="chev">&#9662;</span></span></button><div class="collapse-body">
+      <div class="sched-form card">
         <div class="sched-form-head">
           <h3>Add a meal</h3>
           <p>Schedule a recurring meal and set how often it repeats</p>
@@ -386,8 +376,6 @@
           <button type="button" id="schedAddBtn" class="primary-btn">Add</button>
         </div>
       </div>
-      </div></div>
-      <div class="card collapsible collapsed meal-lib-card" id="mealLibCard"><button type="button" class="collapse-head"><span class="collapse-label">Meal library</span><span class="collapse-side"><span class="collapse-count" id="mealLibCount" title="Meals in your library"></span><span class="chev">&#9662;</span></span></button><div class="collapse-body"><div class="meal-actions"><div class="meal-search-row"><input type="text" id="mealSearch" placeholder="Search meals…" /><button type="button" id="mealAddBtn" class="meal-add-btn">＋ Add custom meal</button></div><div class="ex-filters" id="mealCategoryFilters"><button type="button" class="ex-filter-pill active" data-mcat="all">All</button><button type="button" class="ex-filter-pill" data-mcat="breakfast">Breakfast</button><button type="button" class="ex-filter-pill" data-mcat="lunch">Lunch</button><button type="button" class="ex-filter-pill" data-mcat="dinner">Dinner</button><button type="button" class="ex-filter-pill" data-mcat="snack">Snack</button></div><div class="ex-filters" id="mealScopeFilters"><button type="button" class="ex-filter-pill active" data-mscope="shared">Shared meals</button><button type="button" class="ex-filter-pill" data-mscope="mine">My meals</button><button type="button" class="ex-filter-pill" data-mscope="favs">Favorites</button></div></div><div id="mealFavSection" class="meal-fav-section"></div><div id="mealLibrary" class="meal-library"></div></div></div>
       <div class="week-section-head">
         <h3>Meal schedule</h3>
         <p>Your meals for this week</p>
@@ -416,7 +404,7 @@
           <p>Add compounds to your protocol, then schedule doses below.</p>
         </div>
       </div>
-      <div class="sched-form card collapsible collapsed sched-form-collapsible" id="pepSchedForm"><button type="button" class="collapse-head"><span class="collapse-label">Schedule a dose</span><span class="collapse-side"><span class="chev">&#9662;</span></span></button><div class="collapse-body">
+      <div class="sched-form card">
         <div class="sched-form-head">
           <h3>Schedule a dose</h3>
           <p>Schedule a recurring dose and set how often it repeats</p>
@@ -496,7 +484,6 @@
           <button type="button" id="schedAddBtnPep" class="primary-btn">Add</button>
         </div>
       </div>
-      </div></div>
       <div class="card collapsible collapsed pep-list-card"><button type="button" class="collapse-head"><span class="collapse-label">Add compounds to your protocol</span><span class="collapse-side"><span class="collapse-count" id="pepProtocolCount" title="Compounds in your protocol"></span><span class="chev">▾</span></span></button><div class="collapse-body"><div class="pep-picker">
           <input type="text" id="pepSearch" placeholder="Search the compound list…" />
           <select id="pepSelect"></select>
@@ -531,7 +518,7 @@
           <p>Schedule workouts — dumbbells or bodyweight — with sets and reps.</p>
         </div>
       </div>
-      <div class="sched-form card collapsible collapsed sched-form-collapsible" id="exSchedForm"><button type="button" class="collapse-head"><span class="collapse-label">Schedule a workout</span><span class="collapse-side"><span class="chev">&#9662;</span></span></button><div class="collapse-body">
+      <div class="sched-form card">
         <div class="sched-form-head">
           <h3>Schedule a workout</h3>
           <p>Schedule a recurring workout and set how often it repeats</p>
@@ -611,7 +598,6 @@
           <button type="button" id="schedAddBtnEx" class="primary-btn">Add</button>
         </div>
       </div>
-      </div></div>
       <div class="card collapsible collapsed ex-library-card"><button type="button" class="collapse-head"><span class="collapse-label">Exercise library</span><span class="collapse-side"><span class="collapse-count" id="exLibraryCount" title="Exercises in the library"></span><span class="chev">▾</span></span></button><div class="collapse-body"><div class="ex-actions">
           <div class="ex-search-row">
             <input type="text" id="exSearch" placeholder="Search the library…" />
@@ -633,7 +619,7 @@
         <div id="exFavSection" class="ex-fav-section"></div>
         <div id="exLibrary" class="ex-library"></div></div></div>
       <div class="ex-modal-backdrop hidden" id="exModalBackdrop"><div class="ex-modal" role="dialog" aria-modal="true" aria-labelledby="exModalTitle">
-        <div class="ex-modal-head"><h3 id="exModalTitle">Add exercise</h3><button type="button" class="ex-modal-close" id="exModalClose" aria-label="Close">✕</button></div>
+        <div class="ex-modal-head"><h3 id="exModalTitle">Add exercise</h3><button type="button" class="ex-modal-close" id="exModalClose" aria-label="Close">×</button></div>
         <div class="ex-modal-body">
           <label>Name <input type="text" id="exNewName" placeholder="e.g. Incline push-up" /></label>
           <label>Type <select id="exNewActivity"><option value="strength">Strength</option><option value="core">Core</option><option value="cardio">Cardio</option><option value="mobility">Mobility</option><option value="other">Other</option></select></label>
@@ -668,54 +654,6 @@
         <div id="exWeekList" class="week-list"></div>
       </div>
     </section>
-    <!-- ── My Data ── -->
-    <section class="view-page hidden" id="view-mydata">
-      <div class="page-head">
-        <h2>My Data</h2>
-        <p>Export your data or generate a PDF report from your health records.</p>
-      </div>
-      <div class="mydata-section">
-        <h3>Export Raw Data</h3>
-        <p class="mydata-desc">Select the data types to include in your export.</p>
-        <div class="mydata-checks">
-          <label class="mydata-check"><input type="checkbox" id="expMeasurements" checked /> Measurements</label>
-          <label class="mydata-check"><input type="checkbox" id="expSchedule" checked /> Schedule</label>
-          <label class="mydata-check"><input type="checkbox" id="expMeals" checked /> Meals</label>
-          <label class="mydata-check"><input type="checkbox" id="expExercises" checked /> Exercises</label>
-          <label class="mydata-check"><input type="checkbox" id="expPeptides" checked /> Peptides</label>
-        </div>
-        <div class="mydata-actions">
-          <button type="button" class="mydata-btn" id="exportCsvBtn">Export CSV</button>
-          <button type="button" class="mydata-btn" id="exportJsonBtn">Export JSON</button>
-        </div>
-      </div>
-      <div class="mydata-section">
-        <h3>PDF Report</h3>
-        <p class="mydata-desc">Choose a time period and what to include in your report.</p>
-        <div class="mydata-period">
-          <label>Start date <input type="date" id="pdfStartDate" /></label>
-          <label>Period
-            <select id="pdfPeriod">
-              <option value="week">Week</option>
-              <option value="fortnight">Fortnight</option>
-              <option value="month">Month</option>
-            </select>
-          </label>
-        </div>
-        <div class="mydata-pdf-opts">
-          <label class="mydata-pdf-opt"><input type="checkbox" id="pdfCalendar" checked /> Calendar schedule</label>
-          <label class="mydata-pdf-opt"><input type="checkbox" id="pdfGraph" checked /> Measurements graph</label>
-          <label class="mydata-pdf-opt"><input type="checkbox" id="pdfGoals" checked /> Goals &amp; targets</label>
-          <label class="mydata-pdf-opt"><input type="checkbox" id="pdfMealSummary" checked /> Meal summary</label>
-          <label class="mydata-pdf-opt"><input type="checkbox" id="pdfExSummary" checked /> Exercise summary</label>
-          <label class="mydata-pdf-opt"><input type="checkbox" id="pdfPepSummary" checked /> Peptide summary</label>
-        </div>
-        <div class="mydata-actions">
-          <button type="button" class="mydata-btn primary" id="generatePdfBtn">Generate PDF</button>
-        </div>
-      </div>
-    </section>
-
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -723,7 +661,7 @@
 
   <div class="ex-modal-backdrop hidden" id="exInfoBackdrop">
     <div class="ex-modal ex-info-modal" role="dialog" aria-modal="true" aria-labelledby="exInfoTitle">
-      <div class="ex-modal-head"><h3 id="exInfoTitle">Exercise info</h3><button type="button" class="ex-modal-close" id="exInfoClose" aria-label="Close">✕</button></div>
+      <div class="ex-modal-head"><h3 id="exInfoTitle">Exercise info</h3><button type="button" class="ex-modal-close" id="exInfoClose" aria-label="Close">×</button></div>
       <div class="ex-modal-body">
         <div class="ex-info-meta" id="exInfoMeta"></div>
         <div class="ex-info-section"><h4>Purpose</h4><p id="exInfoPurpose"></p></div>
@@ -738,7 +676,7 @@
   </div>
   <div class="ex-modal-backdrop hidden" id="confirmBackdrop">
     <div class="ex-modal confirm-modal" role="alertdialog" aria-modal="true">
-      <div class="ex-modal-head"><h3>Confirm</h3><button type="button" class="ex-modal-close" id="confirmClose" aria-label="Close">✕</button></div>
+      <div class="ex-modal-head"><h3>Confirm</h3><button type="button" class="ex-modal-close" id="confirmClose" aria-label="Close">×</button></div>
       <div class="ex-modal-body"><p id="confirmMsg"></p></div>
       <div class="ex-modal-actions">
         <button type="button" class="ex-confirm-btn" id="confirmCancel">Cancel</button>
@@ -746,23 +684,6 @@
       </div>
     </div>
   </div>
-
-  <div class="ex-modal-backdrop hidden" id="mealModalBackdrop"><div class="ex-modal" role="dialog" aria-modal="true" aria-labelledby="mealModalTitle">
-    <div class="ex-modal-head"><h3 id="mealModalTitle">Add meal</h3><button type="button" class="ex-modal-close" id="mealModalClose" aria-label="Close">✕</button></div>
-    <div class="ex-modal-body">
-      <label>Name <input type="text" id="mealNewName" placeholder="e.g. High protein breakfast" /></label>
-      <label>Category <select id="mealNewCategory"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option><option value="other">Other</option></select></label>
-      <label>Ingredients <input type="text" id="mealNewIngredients" placeholder="Oats, berries, protein…" /></label>
-      <label>Description <textarea id="mealNewDescription" placeholder="What this meal is about…"></textarea></label>
-      <label>Instructions <textarea id="mealNewInstructions" placeholder="How to prepare…"></textarea></label>
-      <label class="ex-share"><input type="checkbox" id="mealNewShare" checked /> Share with everyone <span style="font:400 12px var(--font-ui);text-transform:none;letter-spacing:0;color:var(--muted)">Share in the community meal library</span></label>
-    </div>
-    <div class="ex-modal-actions">
-      <button type="button" class="secondary-btn" id="mealModalCancel">Cancel</button>
-      <button type="button" class="primary-btn" id="mealModalSave">Save meal</button>
-    </div>
-  </div></div>
-  <div id="printFrame" style="display:none"></div>
 
 </body>
 </html>
